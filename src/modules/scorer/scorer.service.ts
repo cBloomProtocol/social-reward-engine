@@ -86,23 +86,20 @@ export class ScorerService implements OnModuleInit {
   private async executeScoring(): Promise<number> {
     const stateCollection = this.mongoService.database.collection<ScorerState>('scorer_state');
 
-    // Get or create state
-    let existingState = await stateCollection.findOne({ jobName: 'post_scorer' });
-
-    if (!existingState) {
-      const newState: ScorerState = {
-        jobName: 'post_scorer',
-        status: 'idle',
-        updatedAt: new Date(),
-      };
-      await stateCollection.insertOne(newState as any);
-    }
-
-    // Update status to running
-    await stateCollection.updateOne(
-      { jobName: 'post_scorer' },
-      { $set: { status: 'running', lastRunAt: new Date(), updatedAt: new Date() } },
+    // Try to acquire lock (atomic operation)
+    const lockResult = await stateCollection.findOneAndUpdate(
+      { jobName: 'post_scorer', status: { $ne: 'running' } },
+      {
+        $set: { status: 'running', lastRunAt: new Date(), updatedAt: new Date() },
+        $setOnInsert: { jobName: 'post_scorer' },
+      },
+      { upsert: true, returnDocument: 'after' },
     );
+
+    if (!lockResult) {
+      this.logger.debug('Scoring already in progress, skipping...');
+      return 0;
+    }
 
     let processedCount = 0;
 

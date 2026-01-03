@@ -71,6 +71,7 @@ export default function Dashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [triggering, setTriggering] = useState<Record<string, boolean>>({});
 
   const fetchPosts = async (page: number = 1) => {
     try {
@@ -124,11 +125,17 @@ export default function Dashboard() {
   }, []);
 
   const triggerJob = async (job: "fetcher" | "scorer" | "payout") => {
+    if (triggering[job]) return;
+
+    setTriggering((prev) => ({ ...prev, [job]: true }));
     try {
       await apiCall(`/${job}/trigger`, { method: "POST" });
       fetchData();
+      fetchPosts(pagination.page);
     } catch (error) {
       console.error(`Failed to trigger ${job}:`, error);
+    } finally {
+      setTriggering((prev) => ({ ...prev, [job]: false }));
     }
   };
 
@@ -165,9 +172,10 @@ export default function Dashboard() {
               size="sm"
               variant="outline"
               className="mt-4"
+              disabled={triggering.fetcher}
               onClick={() => triggerJob("fetcher")}
             >
-              Trigger Fetch
+              {triggering.fetcher ? "Fetching..." : "Trigger Fetch"}
             </Button>
           </CardContent>
         </Card>
@@ -188,9 +196,10 @@ export default function Dashboard() {
               size="sm"
               variant="outline"
               className="mt-4"
+              disabled={triggering.scorer}
               onClick={() => triggerJob("scorer")}
             >
-              Trigger Score
+              {triggering.scorer ? "Scoring..." : "Trigger Score"}
             </Button>
           </CardContent>
         </Card>
@@ -213,9 +222,10 @@ export default function Dashboard() {
               size="sm"
               variant="outline"
               className="mt-4"
+              disabled={triggering.payout}
               onClick={() => triggerJob("payout")}
             >
-              Trigger Payout
+              {triggering.payout ? "Paying out..." : "Trigger Payout"}
             </Button>
           </CardContent>
         </Card>
