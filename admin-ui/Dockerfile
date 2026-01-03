@@ -27,10 +27,10 @@ COPY --from=builder /app/public ./public
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3002
 
 # Expose port
-EXPOSE 3001
+EXPOSE 3002
 
 # Start the application
 CMD ["node", "server.js"]
