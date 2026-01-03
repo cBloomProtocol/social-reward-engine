@@ -375,6 +375,17 @@ export default function Dashboard() {
                 (p.aiLikelihood === undefined || p.aiLikelihood <= 30)
             );
 
+            const claimStats = {
+              total: eligiblePosts.length,
+              pending: eligiblePosts.filter((p) => !p.payoutStatus || p.payoutStatus === "pending").length,
+              processing: eligiblePosts.filter((p) => p.payoutStatus === "processing").length,
+              paid: eligiblePosts.filter((p) => p.payoutStatus === "paid").length,
+              failed: eligiblePosts.filter((p) => p.payoutStatus === "failed").length,
+              totalAmount: eligiblePosts
+                .filter((p) => p.payoutStatus === "paid" && p.payoutAmount)
+                .reduce((sum, p) => sum + (p.payoutAmount || 0), 0),
+            };
+
             if (eligiblePosts.length === 0) {
               return (
                 <div className="text-center text-muted-foreground py-8">
@@ -384,7 +395,32 @@ export default function Dashboard() {
             }
 
             return (
-              <div className="overflow-x-auto">
+              <div>
+                {/* Claim Stats Summary */}
+                <div className="grid gap-4 md:grid-cols-5 mb-6">
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground">Total Eligible</div>
+                    <div className="text-xl font-bold">{claimStats.total}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground">Pending</div>
+                    <div className="text-xl font-bold">{claimStats.pending}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground">Paid</div>
+                    <div className="text-xl font-bold text-green-600">{claimStats.paid}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground">Failed</div>
+                    <div className="text-xl font-bold text-red-600">{claimStats.failed}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground">Total Paid</div>
+                    <div className="text-xl font-bold text-green-600">{claimStats.totalAmount.toFixed(2)} USDC</div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
@@ -453,6 +489,7 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             );
           })()}
