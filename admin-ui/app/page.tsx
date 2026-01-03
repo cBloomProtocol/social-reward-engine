@@ -64,9 +64,16 @@ interface Status {
   payout: { status: string; lastSuccessAt?: string } | null;
 }
 
+interface ConfigStatus {
+  fetcher: { configured: boolean } | null;
+  scorer: { configured: boolean } | null;
+  payout: { configured: boolean; supportedNetworks?: string[] } | null;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
+  const [configStatus, setConfigStatus] = useState<ConfigStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
@@ -89,15 +96,21 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const [fetcherStats, scorerStats, payoutStats, fetcherStatus, scorerStatus, payoutStatus] =
-        await Promise.all([
-          apiCall<any>("/fetcher/stats"),
-          apiCall<any>("/scorer/stats"),
-          apiCall<any>("/payout/stats"),
-          apiCall<any>("/fetcher/status"),
-          apiCall<any>("/scorer/status"),
-          apiCall<any>("/payout/status"),
-        ]);
+      const [
+        fetcherStats, scorerStats, payoutStats,
+        fetcherStatus, scorerStatus, payoutStatus,
+        fetcherHealth, scorerHealth, payoutHealth
+      ] = await Promise.all([
+        apiCall<any>("/fetcher/stats"),
+        apiCall<any>("/scorer/stats"),
+        apiCall<any>("/payout/stats"),
+        apiCall<any>("/fetcher/status"),
+        apiCall<any>("/scorer/status"),
+        apiCall<any>("/payout/status"),
+        apiCall<any>("/fetcher/health").catch(() => ({ data: null })),
+        apiCall<any>("/scorer/health").catch(() => ({ data: null })),
+        apiCall<any>("/payout/health").catch(() => ({ data: null })),
+      ]);
 
       setStats({
         fetcher: fetcherStats.data,
@@ -109,6 +122,12 @@ export default function Dashboard() {
         fetcher: fetcherStatus.data,
         scorer: scorerStatus.data,
         payout: payoutStatus.data,
+      });
+
+      setConfigStatus({
+        fetcher: fetcherHealth.data,
+        scorer: scorerHealth.data,
+        payout: payoutHealth.data,
       });
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -154,14 +173,38 @@ export default function Dashboard() {
         <p className="text-muted-foreground">Admin Dashboard</p>
       </div>
 
+      {/* Configuration Status */}
+      <Card className="mb-8">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Configuration</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span>X/Twitter API</span>
+            <Badge variant={configStatus?.fetcher?.configured ? "success" : "destructive"}>
+              {configStatus?.fetcher?.configured ? "OK" : "Missing"}
+            </Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>LLM Service</span>
+            <Badge variant={configStatus?.scorer?.configured ? "success" : "destructive"}>
+              {configStatus?.scorer?.configured ? "OK" : "Missing"}
+            </Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>X402 Payment</span>
+            <Badge variant={configStatus?.payout?.configured ? "success" : "secondary"}>
+              {configStatus?.payout?.configured ? "OK" : "Optional"}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Pipeline Status */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Fetcher</CardTitle>
-            <Badge variant={status?.fetcher?.status === "idle" ? "success" : "warning"}>
-              {status?.fetcher?.status || "unknown"}
-            </Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.fetcher?.total || 0}</div>
@@ -181,11 +224,8 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Scorer</CardTitle>
-            <Badge variant={status?.scorer?.status === "idle" ? "success" : "warning"}>
-              {status?.scorer?.status || "unknown"}
-            </Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.scorer?.scored || 0}</div>
@@ -205,11 +245,8 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Payout</CardTitle>
-            <Badge variant={status?.payout?.status === "idle" ? "success" : "warning"}>
-              {status?.payout?.status || "unknown"}
-            </Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">

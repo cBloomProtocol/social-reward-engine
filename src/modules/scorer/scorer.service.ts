@@ -21,6 +21,7 @@ export class ScorerService implements OnModuleInit {
   private readonly logger = new Logger(ScorerService.name);
   private readonly isDev: boolean;
   private readonly batchSize: number;
+  private readonly itemDelay: number;
 
   constructor(
     private readonly configService: ConfigService,
@@ -29,6 +30,7 @@ export class ScorerService implements OnModuleInit {
   ) {
     this.isDev = this.configService.get<string>('NODE_ENV') === 'development';
     this.batchSize = this.configService.get<number>('SCORER_BATCH_SIZE') || 10;
+    this.itemDelay = this.configService.get<number>('SCORER_ITEM_DELAY') || 1000;
   }
 
   async onModuleInit() {
@@ -141,6 +143,11 @@ export class ScorerService implements OnModuleInit {
           this.logger.debug(
             `Scored post ${post.tweetId}: quality=${result.qualityScore}, ai=${result.aiLikelihood}`,
           );
+
+          // Delay between items to avoid rate limiting
+          if (this.itemDelay > 0) {
+            await new Promise((resolve) => setTimeout(resolve, this.itemDelay));
+          }
         } catch (error) {
           const err = error as Error;
           this.logger.error(`Failed to score post ${post.tweetId}: ${err.message}`);

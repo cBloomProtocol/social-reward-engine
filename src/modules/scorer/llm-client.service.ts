@@ -47,15 +47,29 @@ interface RawScoringResult {
   reasoning?: string;
 }
 
+// Supported LLM providers
+type LlmProvider = 'anthropic' | 'openai' | 'deepseek' | 'gemini';
+const VALID_PROVIDERS: LlmProvider[] = ['anthropic', 'openai', 'deepseek', 'gemini'];
+
 @Injectable()
 export class LlmClientService {
   private readonly logger = new Logger(LlmClientService.name);
   private readonly client: AxiosInstance | null = null;
   private readonly apiKey: string;
+  private readonly provider: LlmProvider;
 
   constructor(private readonly configService: ConfigService) {
     const baseURL = this.configService.get<string>('LLM_SERVICE_URL');
     this.apiKey = this.configService.get<string>('LLM_API_KEY') || '';
+
+    // Validate and set provider
+    const configuredProvider = this.configService.get<string>('LLM_PROVIDER') || 'anthropic';
+    if (VALID_PROVIDERS.includes(configuredProvider as LlmProvider)) {
+      this.provider = configuredProvider as LlmProvider;
+    } else {
+      this.logger.warn(`Invalid LLM_PROVIDER "${configuredProvider}", using "anthropic"`);
+      this.provider = 'anthropic';
+    }
 
     if (baseURL && this.apiKey) {
       this.client = axios.create({
@@ -66,7 +80,7 @@ export class LlmClientService {
           'x-api-key': this.apiKey,
         },
       });
-      this.logger.log(`LLM client initialized: ${baseURL}`);
+      this.logger.log(`LLM client initialized: ${baseURL} (provider: ${this.provider})`);
     } else {
       this.logger.warn('LLM service not configured - scoring will be disabled');
     }
@@ -119,6 +133,7 @@ export class LlmClientService {
       variables: {
         AUTHOR_USERNAME: authorUsername,
       },
+      provider: this.provider,
       parserName: 'json',
       source: 'social-reward-engine',
     });

@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Query } from '@nestjs/common';
 import { CrawlerService, CrawlerState } from './crawler.service';
+import { XApiService } from './x-api.service';
 import { MongoDBService } from '../../storage/mongodb.service';
 
 @Controller('fetcher')
 export class FetcherController {
   constructor(
     private readonly crawlerService: CrawlerService,
+    private readonly xApiService: XApiService,
     private readonly mongoService: MongoDBService,
   ) {}
 
@@ -76,6 +78,20 @@ export class FetcherController {
         total,
         pending,
         scored,
+      },
+    };
+  }
+
+  /**
+   * Check X API service health
+   */
+  @Get('health')
+  async checkHealth() {
+    return {
+      success: true,
+      data: {
+        xApiService: this.xApiService.isConfigured() ? 'configured' : 'not_configured',
+        configured: this.xApiService.isConfigured(),
       },
     };
   }
