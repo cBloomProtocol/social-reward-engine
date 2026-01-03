@@ -32,7 +32,7 @@ services:
       context: ./admin-ui
       dockerfile: Dockerfile
     ports:
-      - '${ADMIN_PORT:-7001}:7001'
+      - '${ADMIN_PORT:-3000}:3000'
     environment:
       - NEXT_PUBLIC_API_URL=http://app:3000
     depends_on:
