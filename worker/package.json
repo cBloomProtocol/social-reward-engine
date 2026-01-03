@@ -1,0 +1,21 @@
+{
+  "name": "social-reward-worker",
+  "version": "1.0.0",
+  "description": "X402 Payment Worker for Social Reward Engine",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@coinbase/x402": "^0.1.0",
+    "hono": "^4.0.0",
+    "x402": "^0.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240620.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.0.0"
+  }
+}

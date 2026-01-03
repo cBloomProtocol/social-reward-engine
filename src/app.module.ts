@@ -7,6 +7,8 @@ import { StorageModule } from './storage/storage.module';
 import { FetcherModule } from './modules/fetcher/fetcher.module';
 import { ScorerModule } from './modules/scorer/scorer.module';
 import { PayoutModule } from './modules/payout/payout.module';
+import { X402Module } from './modules/x402/x402.module';
+import { PostsModule } from './modules/posts/posts.module';
 
 @Module({
   imports: [
@@ -26,8 +28,8 @@ import { PayoutModule } from './modules/payout/payout.module';
     FetcherModule,
     ScorerModule,
     PayoutModule,
-    // PipelineModule,
-    // AdminModule,
+    X402Module,
+    PostsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

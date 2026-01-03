@@ -1,14 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import { createWalletClient, http, parseUnits, type WalletClient, type Chain } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { base, baseSepolia } from 'viem/chains';
+
+// CDP Facilitator addresses
+const CDP_FACILITATOR_ADDRESS = '0x0000000000000000000000000000000000000000'; // TODO: Get from CDP docs
+const CDP_FACILITATOR_TESTNET = '0x0000000000000000000000000000000000000000';
+
+// USDC addresses
+const USDC_BASE_MAINNET = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const USDC_BASE_SEPOLIA = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 export interface PaymentRequest {
-  recipientAddress: string;
+  twitterId: string; // Worker will lookup wallet
   amount: number;
   token?: string;
-  network?: string;
-  userId?: string;
-  metadata?: Record<string, any>;
+  network?: 'base' | 'solana';
+  metadata?: Record<string, unknown>;
 }
 
 export interface PaymentResponse {
@@ -17,218 +27,327 @@ export interface PaymentResponse {
   error?: string;
   network?: string;
   amount?: number;
-  recipient?: string;
+  twitterId?: string;
 }
 
-export interface PaymentRequirements {
+export interface X402PaymentPayload {
+  x402Version: number;
   scheme: string;
   network: string;
-  maxAmountRequired: string;
-  payTo: string;
-  asset: string;
-  maxTimeoutSeconds: number;
+  payload: {
+    signature: string;
+    authorization: {
+      token: string;
+      from: string;
+      to: string;
+      value: string;
+      validAfter: string;
+      validBefore: string;
+      nonce: string;
+      needApprove: boolean;
+    };
+  };
 }
 
 @Injectable()
 export class X402ClientService {
   private readonly logger = new Logger(X402ClientService.name);
-  private readonly client: AxiosInstance | null = null;
-  private readonly network: string;
-  private readonly privateKey: string;
+  private readonly workerClient: AxiosInstance | null = null;
+  private readonly evmWalletClient: WalletClient | null = null;
+  private readonly evmAccount: ReturnType<typeof privateKeyToAccount> | null = null;
+  private readonly network: 'base' | 'solana';
+  private readonly isTestnet: boolean;
+  private readonly chain: Chain;
+  private readonly usdcAddress: `0x${string}`;
+  private readonly facilitatorAddress: `0x${string}`;
 
   constructor(private readonly configService: ConfigService) {
-    const gatewayUrl = this.configService.get<string>('X402_GATEWAY_URL');
-    this.network = this.configService.get<string>('X402_NETWORK') || 'bsc';
-    this.privateKey = this.configService.get<string>('X402_PRIVATE_KEY') || '';
+    const workerUrl = this.configService.get<string>('X402_WORKER_URL');
+    this.network = (this.configService.get<string>('X402_NETWORK') as 'base' | 'solana') || 'base';
+    this.isTestnet = this.configService.get<string>('NODE_ENV') !== 'production';
 
-    if (gatewayUrl) {
-      this.client = axios.create({
-        baseURL: gatewayUrl,
+    // Set chain config
+    this.chain = this.isTestnet ? baseSepolia : base;
+    this.usdcAddress = this.isTestnet ? USDC_BASE_SEPOLIA : USDC_BASE_MAINNET;
+    this.facilitatorAddress = this.isTestnet ? CDP_FACILITATOR_TESTNET : CDP_FACILITATOR_ADDRESS;
+
+    // Initialize Worker client
+    if (workerUrl) {
+      this.workerClient = axios.create({
+        baseURL: workerUrl,
         timeout: 60000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-      this.logger.log(`X402 client initialized: ${gatewayUrl} (${this.network})`);
+      this.logger.log(`X402 Worker client initialized: ${workerUrl}`);
     } else {
-      this.logger.warn('X402 gateway not configured - payouts will be disabled');
+      this.logger.warn('X402_WORKER_URL not configured - payouts disabled');
     }
+
+    // Initialize EVM wallet (Base)
+    const evmPrivateKey = this.configService.get<string>('X402_EVM_PRIVATE_KEY');
+    if (evmPrivateKey && this.network === 'base') {
+      try {
+        const formattedKey = evmPrivateKey.startsWith('0x')
+          ? (evmPrivateKey as `0x${string}`)
+          : (`0x${evmPrivateKey}` as `0x${string}`);
+
+        this.evmAccount = privateKeyToAccount(formattedKey);
+        this.evmWalletClient = createWalletClient({
+          account: this.evmAccount,
+          chain: this.chain,
+          transport: http(),
+        });
+
+        this.logger.log(`EVM wallet initialized: ${this.evmAccount.address} on ${this.chain.name}`);
+      } catch (error) {
+        this.logger.error('Failed to initialize EVM wallet:', error);
+      }
+    }
+
+    // TODO: Initialize Solana wallet when needed
   }
 
   /**
-   * Check if X402 is configured
+   * Check if X402 is properly configured
    */
   isConfigured(): boolean {
-    return this.client !== null && !!this.privateKey;
+    if (!this.workerClient) return false;
+
+    if (this.network === 'base') {
+      return this.evmWalletClient !== null;
+    }
+
+    // Solana not yet implemented
+    return false;
   }
 
   /**
-   * Get supported networks
+   * Get current network
    */
-  getSupportedNetworks(): string[] {
-    return ['bsc', 'base', 'solana'];
+  getNetwork(): string {
+    return this.network;
   }
 
   /**
-   * Send payment via X402 protocol
-   *
-   * Note: This is a simplified implementation.
-   * Full X402 requires EIP-712 signature generation which needs:
-   * - ethers.js or viem for wallet signing
-   * - Token approval handling
-   * - Nonce management
-   *
-   * For production, consider using the x402 SDK or implementing
-   * full EIP-712 signing based on your wallet infrastructure.
+   * Get wallet address
+   */
+  getWalletAddress(): string | null {
+    if (this.network === 'base' && this.evmAccount) {
+      return this.evmAccount.address;
+    }
+    return null;
+  }
+
+  /**
+   * Send payment via X402 Worker
    */
   async sendPayment(request: PaymentRequest): Promise<PaymentResponse> {
-    if (!this.client) {
-      return { success: false, error: 'X402 gateway not configured' };
+    if (!this.workerClient) {
+      return { success: false, error: 'X402 Worker not configured' };
     }
 
-    if (!this.privateKey) {
-      return { success: false, error: 'X402 private key not configured' };
+    const { twitterId, amount, network = this.network } = request;
+
+    if (network === 'base') {
+      return this.sendEvmPayment(twitterId, amount);
+    } else if (network === 'solana') {
+      return this.sendSolanaPayment(twitterId, amount);
     }
 
-    const { recipientAddress, amount, network = this.network, userId } = request;
+    return { success: false, error: `Unsupported network: ${network}` };
+  }
+
+  /**
+   * Send EVM payment (Base)
+   */
+  private async sendEvmPayment(twitterId: string, amount: number): Promise<PaymentResponse> {
+    if (!this.evmWalletClient || !this.evmAccount) {
+      return { success: false, error: 'EVM wallet not configured' };
+    }
 
     try {
-      // Step 1: Initial request to get payment requirements
-      const endpoint = `/${network}/${userId || 'reward'}`;
-
-      this.logger.debug(`Initiating X402 payment: ${endpoint}?amount=${amount}`);
-
-      // First request will return 402 with payment requirements
-      let paymentRequirements: PaymentRequirements | null = null;
-
-      try {
-        await this.client.get(endpoint, {
-          params: { amount, recipient: recipientAddress },
-        });
-      } catch (error: any) {
-        if (error.response?.status === 402) {
-          const accepts = error.response.data?.accepts;
-          if (accepts && accepts.length > 0) {
-            paymentRequirements = accepts[0];
-          }
-        } else {
-          throw error;
-        }
-      }
-
-      if (!paymentRequirements) {
-        return { success: false, error: 'Failed to get payment requirements' };
-      }
-
-      // Step 2: Generate payment authorization
-      // Note: This requires proper EIP-712 signing implementation
-      const paymentPayload = await this.generatePaymentPayload(
-        paymentRequirements,
-        recipientAddress,
-        amount,
-      );
+      // Create payment payload with EIP-712 signature
+      const paymentPayload = await this.createEvmPaymentPayload(amount);
 
       if (!paymentPayload) {
+        return { success: false, error: 'Failed to create payment payload' };
+      }
+
+      // Encode payload as base64
+      const xPaymentHeader = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
+
+      // Call Worker
+      this.logger.debug(`Sending payment to Worker for ${twitterId}: ${amount} USDC`);
+
+      const response = await this.workerClient!.post(
+        `/reward/${twitterId}`,
+        { amount },
+        {
+          headers: { 'X-PAYMENT': xPaymentHeader },
+        },
+      );
+
+      // Parse response
+      if (response.data?.success) {
         return {
-          success: false,
-          error: 'Payment signing not implemented. See documentation for setup.',
+          success: true,
+          txHash: response.data.txHash,
+          network: 'base',
+          amount,
+          twitterId,
         };
       }
 
-      // Step 3: Send payment with X-PAYMENT header
-      const response = await this.client.get(endpoint, {
-        params: { amount, recipient: recipientAddress },
-        headers: {
-          'X-PAYMENT': paymentPayload,
-        },
-      });
-
-      // Step 4: Parse response
+      // Check X-PAYMENT-RESPONSE header
       const paymentResponseHeader = response.headers['x-payment-response'];
       if (paymentResponseHeader) {
-        const decoded = JSON.parse(
-          Buffer.from(paymentResponseHeader, 'base64').toString(),
-        );
-
+        const decoded = JSON.parse(Buffer.from(paymentResponseHeader, 'base64').toString());
         return {
           success: true,
           txHash: decoded.transaction,
           network: decoded.network,
           amount,
-          recipient: recipientAddress,
+          twitterId,
         };
       }
 
       return {
-        success: true,
-        network,
-        amount,
-        recipient: recipientAddress,
+        success: false,
+        error: response.data?.error || 'Unknown error from Worker',
+        twitterId,
       };
-    } catch (error: any) {
-      this.logger.error(`X402 payment failed: ${error.message}`);
-
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { data?: { error?: string } } };
+      this.logger.error(`EVM payment failed: ${err.message}`);
       return {
         success: false,
-        error: error.message,
-        network,
-        amount,
-        recipient: recipientAddress,
+        error: err.response?.data?.error || err.message,
+        network: 'base',
+        twitterId,
       };
     }
   }
 
   /**
-   * Generate EIP-712 payment payload
-   *
-   * TODO: Implement proper EIP-712 signing
-   * This requires:
-   * - ethers.js Wallet or viem for signing
-   * - Proper domain and type definitions
-   * - Token contract interaction for nonce
+   * Create EVM payment payload with EIP-712 signature
    */
-  private async generatePaymentPayload(
-    _requirements: PaymentRequirements,
-    _recipient: string,
-    _amount: number,
-  ): Promise<string | null> {
-    // Placeholder for EIP-712 implementation
-    // In production, implement proper signing using:
-    // - ethers.js: wallet.signTypedData(domain, types, value)
-    // - viem: signTypedData({ domain, types, primaryType, message })
-
-    this.logger.warn(
-      'EIP-712 signing not implemented. Override generatePaymentPayload() or use external signing service.',
-    );
-
-    return null;
-  }
-
-  /**
-   * Verify payment status by transaction hash
-   */
-  async verifyPayment(txHash: string, network?: string): Promise<boolean> {
-    // TODO: Implement transaction verification
-    // - Query blockchain RPC for transaction status
-    // - Check if transaction is confirmed
-    this.logger.debug(`Verifying payment: ${txHash} on ${network || this.network}`);
-    return true;
-  }
-
-  /**
-   * Get payment gateway health
-   */
-  async healthCheck(): Promise<boolean> {
-    if (!this.client) {
-      return false;
+  private async createEvmPaymentPayload(amount: number): Promise<X402PaymentPayload | null> {
+    if (!this.evmWalletClient || !this.evmAccount) {
+      return null;
     }
 
     try {
-      // Try to access the gateway
-      await this.client.get('/health').catch(() => null);
-      return true;
-    } catch {
-      return false;
+      // Convert amount to USDC units (6 decimals)
+      const value = parseUnits(amount.toString(), 6);
+
+      // Create authorization params
+      const validAfter = BigInt(0);
+      const validBefore = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour validity
+      const nonce = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
+
+      // EIP-712 typed data for CDP Facilitator
+      const domain = {
+        name: 'Facilitator',
+        version: '1',
+        chainId: this.chain.id,
+        verifyingContract: this.facilitatorAddress,
+      };
+
+      const types = {
+        TokenTransferWithAuthorization: [
+          { name: 'token', type: 'address' },
+          { name: 'from', type: 'address' },
+          { name: 'to', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'validAfter', type: 'uint256' },
+          { name: 'validBefore', type: 'uint256' },
+          { name: 'nonce', type: 'bytes32' },
+          { name: 'needApprove', type: 'bool' },
+        ],
+      };
+
+      const message = {
+        token: this.usdcAddress,
+        from: this.evmAccount.address,
+        to: this.facilitatorAddress, // Will be replaced by Worker with actual recipient
+        value,
+        validAfter,
+        validBefore,
+        nonce: nonce as `0x${string}`,
+        needApprove: true, // CDP handles approval
+      };
+
+      // Sign the typed data
+      const signature = await this.evmWalletClient.signTypedData({
+        account: this.evmAccount,
+        domain,
+        types,
+        primaryType: 'TokenTransferWithAuthorization',
+        message,
+      });
+
+      return {
+        x402Version: 1,
+        scheme: 'exact',
+        network: this.isTestnet ? 'base-sepolia' : 'base',
+        payload: {
+          signature,
+          authorization: {
+            token: this.usdcAddress,
+            from: this.evmAccount.address,
+            to: this.facilitatorAddress,
+            value: value.toString(),
+            validAfter: validAfter.toString(),
+            validBefore: validBefore.toString(),
+            nonce,
+            needApprove: true,
+          },
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to create EVM payment payload:', error);
+      return null;
     }
+  }
+
+  /**
+   * Send Solana payment (placeholder)
+   */
+  private async sendSolanaPayment(twitterId: string, amount: number): Promise<PaymentResponse> {
+    // TODO: Implement Solana payment
+    // Will need: @solana/web3.js, @solana/spl-token
+    this.logger.warn('Solana payments not yet implemented');
+    return {
+      success: false,
+      error: 'Solana payments not yet implemented',
+      network: 'solana',
+      twitterId,
+      amount,
+    };
+  }
+
+  /**
+   * Health check
+   */
+  async healthCheck(): Promise<{ healthy: boolean; network: string; wallet?: string }> {
+    const result = {
+      healthy: false,
+      network: this.network,
+      wallet: this.getWalletAddress() || undefined,
+    };
+
+    if (!this.workerClient) {
+      return result;
+    }
+
+    try {
+      await this.workerClient.get('/health');
+      result.healthy = true;
+    } catch {
+      // Worker might not have /health endpoint
+      result.healthy = this.isConfigured();
+    }
+
+    return result;
   }
 }

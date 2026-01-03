@@ -65,13 +65,14 @@ export class PayoutController {
    */
   @Get('health')
   async checkHealth() {
-    const isHealthy = await this.x402Client.healthCheck();
+    const health = await this.x402Client.healthCheck();
     return {
       success: true,
       data: {
-        x402Service: isHealthy ? 'healthy' : 'unavailable',
+        x402Service: health.healthy ? 'healthy' : 'unavailable',
         configured: this.x402Client.isConfigured(),
-        supportedNetworks: this.x402Client.getSupportedNetworks(),
+        network: health.network,
+        walletAddress: health.wallet,
       },
     };
   }

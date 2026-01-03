@@ -18,7 +18,7 @@ export interface SocialPost {
   spamScore?: number;
   scoredAt?: Date;
   // Payout
-  payoutStatus?: 'pending' | 'queued' | 'paid' | 'failed' | 'ineligible';
+  payoutStatus?: 'pending' | 'queued' | 'processing' | 'paid' | 'failed' | 'ineligible';
   payoutAmount?: number;
   payoutTxHash?: string;
   payoutReason?: string;
@@ -32,7 +32,8 @@ export interface SocialPost {
 export interface PayoutRecord {
   _id?: ObjectId;
   tweetId: string;
-  recipientAddress: string;
+  authorId: string; // Twitter user ID for wallet lookup
+  recipientAddress?: string; // Optional - resolved by Worker
   amount: number;
   token: string;
   network: string;

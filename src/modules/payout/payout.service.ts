@@ -199,11 +199,12 @@ export class PayoutService implements OnModuleInit {
     for (const post of eligiblePosts) {
       const eligibility = this.checkEligibility(post);
 
-      if (eligibility.eligible && post.authorWallet) {
-        // Create payout record
+      if (eligibility.eligible) {
+        // Create payout record - Worker will lookup wallet by authorId
         const payoutRecord: PayoutRecord = {
           tweetId: post.tweetId,
-          recipientAddress: post.authorWallet,
+          authorId: post.authorId,
+          recipientAddress: post.authorWallet, // optional - Worker will lookup if not provided
           amount: eligibility.amount || this.baseAmount,
           token: this.token,
           network: this.network,
@@ -269,13 +270,8 @@ export class PayoutService implements OnModuleInit {
       };
     }
 
-    // Check wallet address
-    if (!post.authorWallet) {
-      return {
-        eligible: false,
-        reason: 'No wallet address linked',
-      };
-    }
+    // Note: Wallet check happens during payout processing
+    // User may not have linked wallet yet - Worker will check
 
     // Calculate reward amount (could be dynamic based on quality)
     const amount = this.calculateRewardAmount(post);
@@ -309,11 +305,11 @@ export class PayoutService implements OnModuleInit {
     );
 
     try {
+      // Use authorId (Twitter ID) for payment - Worker will lookup wallet
       const result = await this.x402Client.sendPayment({
-        recipientAddress: payout.recipientAddress,
+        twitterId: payout.authorId || payout.tweetId, // fallback to tweetId if no authorId
         amount: payout.amount,
-        network: payout.network,
-        userId: payout.tweetId,
+        network: payout.network as 'base' | 'solana',
       });
 
       if (result.success) {
