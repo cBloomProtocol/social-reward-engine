@@ -4,7 +4,32 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { apiCall } from "@/lib/utils";
+
+interface Post {
+  _id: string;
+  tweetId: string;
+  authorId: string;
+  authorName: string;
+  authorUsername: string;
+  text: string;
+  publishedAt: string;
+  qualityScore?: number;
+  aiLikelihood?: number;
+  spamScore?: number;
+  payoutStatus?: string;
+}
+
+interface PostsResponse {
+  data: Post[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 interface Stats {
   fetcher: {
@@ -43,6 +68,23 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  const fetchPosts = async (page: number = 1) => {
+    try {
+      const response = await apiCall<PostsResponse>(`/fetcher/posts?page=${page}&limit=20`);
+      setPosts(response.data);
+      setPagination({
+        page: response.pagination.page,
+        totalPages: response.pagination.totalPages,
+        total: response.pagination.total,
+      });
+    } catch (error) {
+      console.error("Failed to fetch posts:", error);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -76,6 +118,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
+    fetchPosts();
     const interval = setInterval(fetchData, 30000); // Refresh every 30s
     return () => clearInterval(interval);
   }, []);
@@ -262,6 +305,191 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Posts List */}
+      <Card className="mt-8">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Fetched Posts ({pagination.total})</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pagination.page <= 1}
+              onClick={() => fetchPosts(pagination.page - 1)}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => fetchPosts(pagination.page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Author</th>
+                  <th className="text-left p-2">Text</th>
+                  <th className="text-left p-2">Quality</th>
+                  <th className="text-left p-2">AI %</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr
+                    key={post._id}
+                    className="border-b hover:bg-muted/50 cursor-pointer"
+                    onClick={() => setSelectedPost(post)}
+                  >
+                    <td className="p-2">
+                      <div className="font-medium">@{post.authorUsername}</div>
+                      <div className="text-xs text-muted-foreground">{post.authorName}</div>
+                    </td>
+                    <td className="p-2 max-w-md truncate">{post.text}</td>
+                    <td className="p-2">
+                      {post.qualityScore !== undefined ? (
+                        <span className={post.qualityScore >= 80 ? "text-green-600" : "text-yellow-600"}>
+                          {post.qualityScore}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {post.aiLikelihood !== undefined ? (
+                        <span className={post.aiLikelihood <= 30 ? "text-green-600" : "text-red-600"}>
+                          {post.aiLikelihood}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      <Badge
+                        variant={
+                          post.payoutStatus === "completed"
+                            ? "success"
+                            : post.payoutStatus === "pending"
+                            ? "warning"
+                            : "secondary"
+                        }
+                      >
+                        {post.payoutStatus || "unscored"}
+                      </Badge>
+                    </td>
+                    <td className="p-2 text-muted-foreground">
+                      {new Date(post.publishedAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+                {posts.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                      No posts found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Post Detail Dialog */}
+      <Dialog open={!!selectedPost} onClose={() => setSelectedPost(null)}>
+        <DialogHeader>
+          <DialogTitle>Post Details</DialogTitle>
+        </DialogHeader>
+        <DialogContent>
+          {selectedPost && (
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm text-muted-foreground">Author</div>
+                <div className="font-medium">@{selectedPost.authorUsername}</div>
+                <div className="text-sm text-muted-foreground">{selectedPost.authorName}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Content</div>
+                <div className="mt-1 p-3 bg-muted rounded-md whitespace-pre-wrap">
+                  {selectedPost.text}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">Quality Score</div>
+                  <div className="text-xl font-bold">
+                    {selectedPost.qualityScore !== undefined ? selectedPost.qualityScore : "-"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">AI Likelihood</div>
+                  <div className="text-xl font-bold">
+                    {selectedPost.aiLikelihood !== undefined ? `${selectedPost.aiLikelihood}%` : "-"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Spam Score</div>
+                  <div className="text-xl font-bold">
+                    {selectedPost.spamScore !== undefined ? selectedPost.spamScore : "-"}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">Status</div>
+                  <Badge
+                    variant={
+                      selectedPost.payoutStatus === "completed"
+                        ? "success"
+                        : selectedPost.payoutStatus === "pending"
+                        ? "warning"
+                        : "secondary"
+                    }
+                  >
+                    {selectedPost.payoutStatus || "unscored"}
+                  </Badge>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Published</div>
+                  <div>{new Date(selectedPost.publishedAt).toLocaleString()}</div>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Tweet ID</div>
+                <div className="font-mono text-sm">{selectedPost.tweetId}</div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setSelectedPost(null)}>
+            Close
+          </Button>
+          {selectedPost && (
+            <Button
+              onClick={() =>
+                window.open(
+                  `https://twitter.com/${selectedPost.authorUsername}/status/${selectedPost.tweetId}`,
+                  "_blank"
+                )
+              }
+            >
+              View on X
+            </Button>
+          )}
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }

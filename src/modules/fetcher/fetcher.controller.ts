@@ -44,7 +44,7 @@ export class FetcherController {
     const total = await this.mongoService.posts.countDocuments();
     const posts = await this.mongoService.posts
       .find()
-      .sort({ crawledAt: -1 })
+      .sort({ publishedAt: -1 })
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum)
       .toArray();
