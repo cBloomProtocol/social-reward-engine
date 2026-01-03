@@ -325,37 +325,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Payout Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payout Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div>
-              <div className="text-sm text-muted-foreground">Pending</div>
-              <div className="text-xl font-bold">{stats?.payout?.pending || 0}</div>
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Completed</div>
-              <div className="text-xl font-bold text-green-600">
-                {stats?.payout?.completed || 0}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Failed</div>
-              <div className="text-xl font-bold text-red-600">
-                {stats?.payout?.failed || 0}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Total Transactions</div>
-              <div className="text-xl font-bold">{stats?.payout?.total || 0}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Eligible Posts - Claim Status */}
       <Card className="mt-8">
         <CardHeader>
