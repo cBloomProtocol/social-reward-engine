@@ -1,38 +1,53 @@
 # Social Reward Engine
 
-An automated social reward system that fetches social posts from X/Twitter, scores them using LLM, and pays users via X402 blockchain protocol.
+An automated social reward system that fetches social posts from X/Twitter, scores them using LLM, and pays users via X402 blockchain protocol on Base network.
 
 ## Features
 
 - **X/Twitter Fetcher**: Built-in mentions crawler using X API v2
 - **LLM Scoring**: Quality scoring with AI likelihood detection
-- **X402 Payments**: Blockchain payouts via X402 protocol (BSC, Base, Solana)
-- **Rules Engine**: Configurable reward eligibility rules
+- **X402 Payments**: USDC payouts via CDP (Coinbase Developer Platform) on Base
+- **Claim UI**: User-facing claim page with Crossmint wallet integration
 - **Admin Dashboard**: Real-time monitoring UI built with Next.js
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              SOCIAL REWARD ENGINE                           │
-│                                                             │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌──────────┐ │
-│  │  Fetcher  │→ │  Scorer   │→ │   Rules   │→ │  Payout  │ │
-│  │  */3 min  │  │  */5 min  │  │  Engine   │  │ */10 min │ │
-│  └───────────┘  └───────────┘  └───────────┘  └──────────┘ │
-│       ↓              ↓              ↓              ↓        │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                    MongoDB                           │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                                 │
-│  ┌────────────────────────┼────────────────────────┐       │
-│  │                        │                        │       │
-│  ▼                        ▼                        ▼       │
-│  ┌───────────┐      ┌───────────┐      ┌───────────┐      │
-│  │ LLM Client│      │X402 Client│      │Admin Panel│      │
-│  │ (External)│      │ (External)│      │ (Next.js) │      │
-│  └───────────┘      └───────────┘      └───────────┘      │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    SOCIAL REWARD ENGINE                          │
+│                                                                  │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌──────────────┐  │
+│  │  Fetcher  │→ │  Scorer   │→ │   Rules   │→ │    Payout    │  │
+│  │  */3 min  │  │  */5 min  │  │  Engine   │  │   */10 min   │  │
+│  └───────────┘  └───────────┘  └───────────┘  └──────────────┘  │
+│       ↓              ↓              ↓               ↓           │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                       MongoDB                             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│  ┌───────────────────────────┼───────────────────────────┐      │
+│  │                           │                           │      │
+│  ▼                           ▼                           ▼      │
+│  ┌───────────┐      ┌───────────────┐      ┌───────────────┐   │
+│  │LLM Client │      │ X402 Worker   │      │  Admin Panel  │   │
+│  │ (External)│      │ (Cloudflare)  │      │   (Next.js)   │   │
+│  └───────────┘      └───────────────┘      └───────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│                     ┌─────────────┐                             │
+│                     │  CDP / Base │                             │
+│                     │   Network   │                             │
+│                     └─────────────┘                             │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLAIM FLOW                                │
+│                                                                  │
+│  User clicks claim link → Claim UI → Login with Twitter         │
+│       → Crossmint creates wallet → Wallet linked to Twitter ID  │
+│       → Claim reward → Backend signs EIP-3009 payment           │
+│       → Worker settles via CDP → USDC sent to user wallet       │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
@@ -40,8 +55,11 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 ### Prerequisites
 
 - Node.js 20+
+- pnpm (for backend)
 - MongoDB 7+
-- X/Twitter API credentials ([Get here](https://developer.twitter.com))
+- X/Twitter API credentials
+- CDP API credentials (from [Coinbase Developer Platform](https://portal.cdp.coinbase.com))
+- Crossmint API key (for claim UI)
 
 ### Installation
 
@@ -51,132 +69,104 @@ git clone https://github.com/cBloomProtocol/social-reward-engine.git
 cd social-reward-engine
 
 # Install backend dependencies
-npm install
+pnpm install
+
+# Install claim UI dependencies
+cd claim-ui && npm install && cd ..
 
 # Install admin UI dependencies
 cd admin-ui && npm install && cd ..
 
-# Copy environment file
+# Install worker dependencies
+cd worker && npm install && cd ..
+
+# Copy environment files
 cp .env.example .env
-
-# Configure your credentials in .env
-```
-
-### Running with Docker (Recommended)
-
-```bash
-# Start all services (API + Admin + MongoDB)
-docker-compose up -d
-
-# View logs
-docker-compose logs -f app
-
-# Access:
-# - API: http://localhost:3000
-# - Admin: http://localhost:3001
+cp claim-ui/.env.example claim-ui/.env.local
+cp worker/.dev.vars.example worker/.dev.vars
 ```
 
 ### Running Locally
 
 ```bash
-# Start MongoDB (required)
-docker run -d -p 27017:27017 mongo:7
+# Terminal 1: Start MongoDB
+docker run -d -p 27018:27017 mongo:7
 
-# Start backend (development mode)
-npm run start:dev
+# Terminal 2: Start backend (port 7200)
+pnpm start:dev
 
-# Start admin UI (in another terminal)
+# Terminal 3: Start claim UI (port 3100)
+cd claim-ui && npm run dev
+
+# Terminal 4: Start admin UI (port 7201)
 cd admin-ui && npm run dev
+
+# Terminal 5: Start X402 worker (port 8787)
+cd worker && npm run dev
 ```
 
 ## Configuration
 
-### Required Environment Variables
+### Backend Environment Variables (.env)
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `MONGODB_URI` | MongoDB connection string | Yes |
+| `X_API_BEARER_TOKEN` | X/Twitter API bearer token | Yes |
+| `X_API_USER_ID` | X/Twitter user ID to monitor | Yes |
+| `LLM_SERVICE_URL` | External LLM service URL | No |
+| `X402_WORKER_URL` | X402 worker URL (e.g., http://localhost:8787) | Yes |
+| `X402_NETWORK` | Network: `base` or `base-sepolia` | Yes |
+| `X402_EVM_PRIVATE_KEY` | Payer wallet private key | Yes |
+
+### Claim UI Environment Variables (claim-ui/.env.local)
 
 | Variable | Description |
 |----------|-------------|
-| `MONGODB_URI` | MongoDB connection string |
-| `X_API_BEARER_TOKEN` | X/Twitter API bearer token |
-| `X_API_USER_ID` | Your X/Twitter user ID to monitor |
+| `NEXT_PUBLIC_API_URL` | Backend API URL |
+| `NEXT_PUBLIC_CROSSMINT_CLIENT_KEY` | Crossmint client API key |
+| `NEXT_PUBLIC_NETWORK` | Network: `base` or `base-sepolia` |
 
-### Optional - LLM Scoring
+### Worker Environment Variables (worker/.dev.vars)
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LLM_SERVICE_URL` | External LLM service URL | - |
-| `LLM_API_KEY` | LLM service API key | - |
-
-### Optional - X402 Payments
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `X402_GATEWAY_URL` | X402 payment gateway URL | - |
-| `X402_NETWORK` | Blockchain network (bsc, base, solana) | bsc |
-| `X402_PRIVATE_KEY` | Wallet private key for payments | - |
-
-### Reward Configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `REWARD_BASE_AMOUNT` | Base reward amount | 1.0 |
-| `REWARD_TOKEN` | Token symbol | USDT |
-| `REWARD_MIN_QUALITY_SCORE` | Minimum quality score for eligibility | 80 |
-| `REWARD_MAX_AI_LIKELIHOOD` | Maximum AI likelihood allowed | 30 |
+| Variable | Description |
+|----------|-------------|
+| `CDP_API_KEY_ID` | CDP API key ID |
+| `CDP_API_KEY_SECRET` | CDP API key secret (Ed25519) |
+| `BACKEND_API_URL` | Backend API URL |
+| `NETWORK` | Network: `base` or `base-sepolia` |
 
 ## API Endpoints
 
-### Fetcher
+### Posts & Claims
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/fetcher/status` | Get crawler status |
-| POST | `/fetcher/trigger` | Trigger manual fetch |
-| GET | `/fetcher/posts` | Get fetched posts |
-| GET | `/fetcher/stats` | Get fetch statistics |
+| GET | `/posts/:tweetId` | Get post info for claim page |
+| POST | `/claim/:tweetId` | Claim reward for a post |
+| GET | `/claim/:tweetId/status` | Get claim status |
 
-### Scorer
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/scorer/status` | Get scorer status |
-| POST | `/scorer/trigger` | Trigger manual scoring |
-| POST | `/scorer/posts/:id/score` | Score specific post |
-| GET | `/scorer/stats` | Get scoring statistics |
-| GET | `/scorer/health` | Check LLM service health |
-
-### Payout
+### X402 Wallet
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/payout/status` | Get payout status |
-| POST | `/payout/trigger` | Trigger manual payout |
-| GET | `/payout/stats` | Get payout statistics |
-| GET | `/payout/history` | Get payout history |
-| GET | `/payout/health` | Check X402 service health |
+| GET | `/x402/user/:twitterId/wallet` | Get user's linked wallet |
+| POST | `/x402/user/:twitterId/wallet` | Link wallet to Twitter ID |
 
-## Pipeline Flow
+### Fetcher / Scorer / Payout
 
-### 1. Fetch (Every 3 minutes)
-- Fetches new mentions from X API v2
-- Uses `sinceId` for incremental fetching
-- Handles rate limits with 20-minute cooldown
+See existing endpoints for pipeline management.
 
-### 2. Score (Every 5 minutes)
-- Sends unscored posts to LLM service
-- Evaluates: quality score, AI likelihood, spam score
-- Stores results in MongoDB
+## Claim Flow
 
-### 3. Payout (Every 10 minutes)
-- Checks eligibility based on configured rules
-- Queues eligible posts for payment
-- Executes payments via X402 protocol
-
-## Eligibility Rules
-
-Posts are eligible for rewards when:
-- `qualityScore >= REWARD_MIN_QUALITY_SCORE` (default: 80)
-- `aiLikelihood <= REWARD_MAX_AI_LIKELIHOOD` (default: 30)
-- Author has a linked wallet address
+1. User receives a claim link: `https://your-domain.com/claim/{tweetId}`
+2. User opens the claim page and clicks "Sign in with Twitter"
+3. Crossmint authenticates user and creates a smart wallet
+4. Wallet address is linked to user's Twitter ID
+5. User clicks "Claim Reward"
+6. Backend creates EIP-3009 TransferWithAuthorization signature
+7. Worker settles payment via CDP
+8. USDC is transferred to user's wallet on Base
 
 ## Project Structure
 
@@ -186,42 +176,47 @@ social-reward-engine/
 │   ├── modules/
 │   │   ├── fetcher/      # X API crawler
 │   │   ├── scorer/       # LLM scoring
-│   │   └── payout/       # X402 payments
+│   │   ├── payout/       # X402 payment client
+│   │   ├── posts/        # Posts & claims controller
+│   │   └── x402/         # Wallet linking service
 │   ├── storage/          # MongoDB service
 │   └── main.ts
+├── claim-ui/             # Next.js user claim page
+│   ├── app/claim/        # Claim page route
+│   └── components/       # Crossmint providers
 ├── admin-ui/             # Next.js admin dashboard
+├── worker/               # Cloudflare Worker for X402
+│   └── src/index.ts      # CDP payment settlement
 ├── templates/            # LLM prompt templates
-├── docker-compose.yml
-└── Dockerfile
+└── docker-compose.yml
 ```
 
-## External Services
+## Deployment
 
-### LLM Service (Optional)
-Compatible with any LLM API that accepts:
-```json
-POST /llm/process
-{
-  "content": "Post text",
-  "templateName": "scoring/quality-score",
-  "parserName": "json"
-}
+### Worker (Cloudflare)
+
+```bash
+cd worker
+npm run deploy
 ```
 
-### X402 Payment (Optional)
-Uses the X402 HTTP payment protocol for blockchain transactions.
-Supported networks: BSC, Base, Solana
+Configure secrets in Cloudflare dashboard:
+- `CDP_API_KEY_ID`
+- `CDP_API_KEY_SECRET`
+- `BACKEND_API_URL`
+- `NETWORK`
+
+### Backend & UIs
+
+Deploy to your preferred platform (Railway, Vercel, etc.)
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## Links
 
 - [X402 Protocol](https://x402.org)
-- [X API Documentation](https://developer.twitter.com/en/docs)
+- [CDP Documentation](https://docs.cdp.coinbase.com)
+- [Crossmint Documentation](https://docs.crossmint.com)
 - [Bloom Protocol](https://bloomprotocol.ai)
