@@ -370,7 +370,6 @@ export default function Dashboard() {
           {(() => {
             const eligiblePosts = posts.filter(
               (p) =>
-                p.scoredAt &&
                 p.qualityScore !== undefined &&
                 p.qualityScore >= 80 &&
                 (p.aiLikelihood === undefined || p.aiLikelihood <= 30)
