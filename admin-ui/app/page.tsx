@@ -423,7 +423,7 @@ export default function Dashboard() {
                                 : "secondary"
                             }
                           >
-                            {post.payoutStatus || "claimable"}
+                            {post.payoutStatus || "pending"}
                           </Badge>
                         </td>
                         <td className="p-2">
