@@ -18,7 +18,10 @@ interface Post {
   qualityScore?: number;
   aiLikelihood?: number;
   spamScore?: number;
+  scoredAt?: string;
   payoutStatus?: string;
+  payoutAmount?: number;
+  payoutTxHash?: string;
 }
 
 interface PostsResponse {
@@ -350,6 +353,110 @@ export default function Dashboard() {
               <div className="text-xl font-bold">{stats?.payout?.total || 0}</div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Eligible Posts - Claim Status */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>
+            Eligible Posts
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              (Quality ≥ 80, AI ≤ 30%)
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const eligiblePosts = posts.filter(
+              (p) =>
+                p.scoredAt &&
+                p.qualityScore !== undefined &&
+                p.qualityScore >= 80 &&
+                (p.aiLikelihood === undefined || p.aiLikelihood <= 30)
+            );
+
+            if (eligiblePosts.length === 0) {
+              return (
+                <div className="text-center text-muted-foreground py-8">
+                  No eligible posts found
+                </div>
+              );
+            }
+
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Author</th>
+                      <th className="text-left p-2">Quality</th>
+                      <th className="text-left p-2">AI %</th>
+                      <th className="text-left p-2">Amount</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Claim Link</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eligiblePosts.map((post) => (
+                      <tr key={post._id} className="border-b hover:bg-muted/50">
+                        <td className="p-2">
+                          <div className="font-medium">@{post.authorUsername}</div>
+                        </td>
+                        <td className="p-2 text-green-600 font-medium">
+                          {post.qualityScore}
+                        </td>
+                        <td className="p-2 text-green-600">
+                          {post.aiLikelihood ?? 0}%
+                        </td>
+                        <td className="p-2">
+                          {post.payoutAmount ? `${post.payoutAmount} USDC` : "-"}
+                        </td>
+                        <td className="p-2">
+                          <Badge
+                            variant={
+                              post.payoutStatus === "paid"
+                                ? "success"
+                                : post.payoutStatus === "processing"
+                                ? "warning"
+                                : post.payoutStatus === "failed"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {post.payoutStatus || "claimable"}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          {post.payoutStatus === "paid" && post.payoutTxHash ? (
+                            <a
+                              href={`https://basescan.org/tx/${post.payoutTxHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-xs"
+                            >
+                              View Tx
+                            </a>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  `${window.location.origin.replace(':7201', ':3100')}/claim/${post.tweetId}`
+                                );
+                              }}
+                              className="text-blue-600 hover:underline text-xs"
+                            >
+                              Copy Link
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
