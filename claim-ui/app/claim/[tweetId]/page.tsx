@@ -40,21 +40,29 @@ export default function ClaimPage() {
   // Link wallet when user logs in and wallet is ready
   useEffect(() => {
     async function linkUserWallet() {
+      // Get Twitter ID from Crossmint user object
+      const twitterId = (user as any)?.twitter?.id;
+
+      console.log("[Crossmint] User Twitter ID:", twitterId);
+      console.log("[Crossmint] Wallet address:", wallet?.address);
+
       if (
         authStatus === "logged-in" &&
         walletStatus === "loaded" &&
         wallet?.address &&
-        postInfo?.authorId &&
+        twitterId &&
         !walletLinked
       ) {
-        const result = await linkWallet(postInfo.authorId, wallet.address, NETWORK);
+        // Link wallet using the logged-in user's Twitter ID
+        const result = await linkWallet(twitterId, wallet.address, NETWORK);
         if (result.success) {
           setWalletLinked(true);
+          console.log("[Crossmint] Wallet linked successfully for Twitter ID:", twitterId);
         }
       }
     }
     linkUserWallet();
-  }, [authStatus, walletStatus, wallet?.address, postInfo?.authorId, walletLinked]);
+  }, [authStatus, walletStatus, wallet?.address, walletLinked, user]);
 
   // Handle claim
   const handleClaim = async () => {
@@ -118,7 +126,7 @@ export default function ClaimPage() {
             </div>
 
             <a
-              href={`https://sepolia.basescan.org/tx/${postInfo.payoutTxHash}`}
+              href={`https://basescan.org/tx/${postInfo.payoutTxHash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full bg-gray-800 hover:bg-gray-700 text-center py-3 rounded-lg transition"
@@ -195,7 +203,7 @@ export default function ClaimPage() {
                 <p className="text-green-500 font-medium mb-2">Reward Claimed!</p>
                 {claimResult.txHash && (
                   <a
-                    href={`https://sepolia.basescan.org/tx/${claimResult.txHash}`}
+                    href={`https://basescan.org/tx/${claimResult.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-400 hover:underline"

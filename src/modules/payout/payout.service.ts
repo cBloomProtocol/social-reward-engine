@@ -4,6 +4,7 @@ import { Cron } from '@nestjs/schedule';
 import { ObjectId } from 'mongodb';
 import { MongoDBService, PayoutRecord } from '../../storage/mongodb.service';
 import { X402ClientService, PaymentResponse } from './x402-client.service';
+import { X402Service } from '../x402/x402.service';
 
 export interface PayoutState {
   _id?: string;
@@ -40,6 +41,7 @@ export class PayoutService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly mongoService: MongoDBService,
     private readonly x402Client: X402ClientService,
+    private readonly x402Service: X402Service,
   ) {
     this.isDev = this.configService.get<string>('NODE_ENV') === 'development';
     this.batchSize = this.configService.get<number>('PAYOUT_BATCH_SIZE') || 10;
@@ -305,9 +307,23 @@ export class PayoutService implements OnModuleInit {
     );
 
     try {
-      // Use authorId (Twitter ID) for payment - Worker will lookup wallet
+      // Get recipient address - from payout record or lookup from x402Service
+      let recipientAddress = payout.recipientAddress;
+      if (!recipientAddress) {
+        const wallet = await this.x402Service.getUserWallet(
+          payout.authorId || payout.tweetId,
+          payout.network as 'base' | 'solana',
+        );
+        recipientAddress = wallet?.walletAddress;
+      }
+
+      if (!recipientAddress) {
+        throw new Error('Recipient wallet not found');
+      }
+
       const result = await this.x402Client.sendPayment({
-        twitterId: payout.authorId || payout.tweetId, // fallback to tweetId if no authorId
+        twitterId: payout.authorId || payout.tweetId,
+        recipientAddress,
         amount: payout.amount,
         network: payout.network as 'base' | 'solana',
       });

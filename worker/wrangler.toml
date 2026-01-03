@@ -8,7 +8,7 @@ port = 8787
 
 # Environment variables (set these in Cloudflare dashboard for production)
 [vars]
-NETWORK = "base-sepolia"
+NETWORK = "base"
 
 # Secrets (set via wrangler secret put)
 # CDP_API_KEY_ID = ""

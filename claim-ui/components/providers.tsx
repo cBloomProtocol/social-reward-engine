@@ -13,11 +13,9 @@ const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "base";
 const getChain = (network: string) => {
   switch (network) {
     case "base":
-      return "base-sepolia"; // Use testnet for staging
-    case "solana":
-      return "solana";
+      return "base"; // Use mainnet
     default:
-      return "base-sepolia";
+      return "base";
   }
 };
 
@@ -44,7 +42,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <CrossmintWalletProvider
           createOnLogin={{
             chain: getChain(NETWORK),
-            signer: { type: "eoa" },
+            signer: { type: "passkey" },
           }}
         >
           {children}

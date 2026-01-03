@@ -143,6 +143,7 @@ export class PostsService {
       // Send payment
       const result = await this.x402Client.sendPayment({
         twitterId: post.authorId,
+        recipientAddress: wallet.walletAddress,
         amount,
         network: 'base',
       });

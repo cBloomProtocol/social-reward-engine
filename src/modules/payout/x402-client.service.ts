@@ -5,16 +5,17 @@ import { createWalletClient, http, parseUnits, type WalletClient, type Chain } f
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 
-// CDP Facilitator addresses
-const CDP_FACILITATOR_ADDRESS = '0x0000000000000000000000000000000000000000'; // TODO: Get from CDP docs
-const CDP_FACILITATOR_TESTNET = '0x0000000000000000000000000000000000000000';
+// USDC domain names (for EIP-3009)
+const USDC_DOMAIN_NAME = 'USD Coin';
+const USDC_DOMAIN_VERSION = '2';
 
 // USDC addresses
 const USDC_BASE_MAINNET = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const USDC_BASE_SEPOLIA = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 export interface PaymentRequest {
-  twitterId: string; // Worker will lookup wallet
+  twitterId: string;
+  recipientAddress: string; // Recipient wallet address
   amount: number;
   token?: string;
   network?: 'base' | 'solana';
@@ -37,14 +38,12 @@ export interface X402PaymentPayload {
   payload: {
     signature: string;
     authorization: {
-      token: string;
       from: string;
       to: string;
       value: string;
       validAfter: string;
       validBefore: string;
       nonce: string;
-      needApprove: boolean;
     };
   };
 }
@@ -59,17 +58,16 @@ export class X402ClientService {
   private readonly isTestnet: boolean;
   private readonly chain: Chain;
   private readonly usdcAddress: `0x${string}`;
-  private readonly facilitatorAddress: `0x${string}`;
 
   constructor(private readonly configService: ConfigService) {
     const workerUrl = this.configService.get<string>('X402_WORKER_URL');
-    this.network = (this.configService.get<string>('X402_NETWORK') as 'base' | 'solana') || 'base';
-    this.isTestnet = this.configService.get<string>('NODE_ENV') !== 'production';
+    const networkConfig = this.configService.get<string>('X402_NETWORK') || 'base';
+    this.network = networkConfig.replace('-sepolia', '') as 'base' | 'solana';
+    this.isTestnet = networkConfig.includes('sepolia');
 
-    // Set chain config
+    // Set chain config based on X402_NETWORK (not NODE_ENV)
     this.chain = this.isTestnet ? baseSepolia : base;
     this.usdcAddress = this.isTestnet ? USDC_BASE_SEPOLIA : USDC_BASE_MAINNET;
-    this.facilitatorAddress = this.isTestnet ? CDP_FACILITATOR_TESTNET : CDP_FACILITATOR_ADDRESS;
 
     // Initialize Worker client
     if (workerUrl) {
@@ -146,10 +144,14 @@ export class X402ClientService {
       return { success: false, error: 'X402 Worker not configured' };
     }
 
-    const { twitterId, amount, network = this.network } = request;
+    const { twitterId, recipientAddress, amount, network = this.network } = request;
+
+    if (!recipientAddress) {
+      return { success: false, error: 'Recipient address is required' };
+    }
 
     if (network === 'base') {
-      return this.sendEvmPayment(twitterId, amount);
+      return this.sendEvmPayment(twitterId, recipientAddress, amount);
     } else if (network === 'solana') {
       return this.sendSolanaPayment(twitterId, amount);
     }
@@ -160,14 +162,14 @@ export class X402ClientService {
   /**
    * Send EVM payment (Base)
    */
-  private async sendEvmPayment(twitterId: string, amount: number): Promise<PaymentResponse> {
+  private async sendEvmPayment(twitterId: string, recipientAddress: string, amount: number): Promise<PaymentResponse> {
     if (!this.evmWalletClient || !this.evmAccount) {
       return { success: false, error: 'EVM wallet not configured' };
     }
 
     try {
-      // Create payment payload with EIP-712 signature
-      const paymentPayload = await this.createEvmPaymentPayload(amount);
+      // Create payment payload with EIP-3009 signature
+      const paymentPayload = await this.createEvmPaymentPayload(amount, recipientAddress);
 
       if (!paymentPayload) {
         return { success: false, error: 'Failed to create payment payload' };
@@ -229,9 +231,9 @@ export class X402ClientService {
   }
 
   /**
-   * Create EVM payment payload with EIP-712 signature
+   * Create EVM payment payload with EIP-3009 TransferWithAuthorization signature
    */
-  private async createEvmPaymentPayload(amount: number): Promise<X402PaymentPayload | null> {
+  private async createEvmPaymentPayload(amount: number, recipientAddress: string): Promise<X402PaymentPayload | null> {
     if (!this.evmWalletClient || !this.evmAccount) {
       return null;
     }
@@ -243,38 +245,35 @@ export class X402ClientService {
       // Create authorization params
       const validAfter = BigInt(0);
       const validBefore = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour validity
-      const nonce = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
+      const nonce = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}` as `0x${string}`;
 
-      // EIP-712 typed data for CDP Facilitator
+      // EIP-3009 TransferWithAuthorization - domain is the USDC token contract
       const domain = {
-        name: 'Facilitator',
-        version: '1',
+        name: USDC_DOMAIN_NAME,
+        version: USDC_DOMAIN_VERSION,
         chainId: this.chain.id,
-        verifyingContract: this.facilitatorAddress,
+        verifyingContract: this.usdcAddress,
       };
 
+      // EIP-3009 standard types
       const types = {
-        TokenTransferWithAuthorization: [
-          { name: 'token', type: 'address' },
+        TransferWithAuthorization: [
           { name: 'from', type: 'address' },
           { name: 'to', type: 'address' },
           { name: 'value', type: 'uint256' },
           { name: 'validAfter', type: 'uint256' },
           { name: 'validBefore', type: 'uint256' },
           { name: 'nonce', type: 'bytes32' },
-          { name: 'needApprove', type: 'bool' },
         ],
       };
 
       const message = {
-        token: this.usdcAddress,
         from: this.evmAccount.address,
-        to: this.facilitatorAddress, // Will be replaced by Worker with actual recipient
+        to: recipientAddress as `0x${string}`,
         value,
         validAfter,
         validBefore,
-        nonce: nonce as `0x${string}`,
-        needApprove: true, // CDP handles approval
+        nonce,
       };
 
       // Sign the typed data
@@ -282,7 +281,7 @@ export class X402ClientService {
         account: this.evmAccount,
         domain,
         types,
-        primaryType: 'TokenTransferWithAuthorization',
+        primaryType: 'TransferWithAuthorization',
         message,
       });
 
@@ -293,14 +292,12 @@ export class X402ClientService {
         payload: {
           signature,
           authorization: {
-            token: this.usdcAddress,
             from: this.evmAccount.address,
-            to: this.facilitatorAddress,
+            to: recipientAddress,
             value: value.toString(),
             validAfter: validAfter.toString(),
             validBefore: validBefore.toString(),
             nonce,
-            needApprove: true,
           },
         },
       };
