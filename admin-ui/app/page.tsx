@@ -204,7 +204,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Pipeline Status */}
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
+      <div className="grid gap-4 md:grid-cols-2 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Fetcher</CardTitle>
@@ -243,29 +243,6 @@ export default function Dashboard() {
               onClick={() => triggerJob("scorer")}
             >
               {triggering.scorer ? "Scoring..." : "Trigger Score"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Payout</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.payout?.totalPaid?.toFixed(2) || 0} {stats?.payout?.token || "USDT"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total paid ({stats?.payout?.completed || 0} transactions)
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-4"
-              disabled={triggering.payout}
-              onClick={() => triggerJob("payout")}
-            >
-              {triggering.payout ? "Paying out..." : "Trigger Payout"}
             </Button>
           </CardContent>
         </Card>
