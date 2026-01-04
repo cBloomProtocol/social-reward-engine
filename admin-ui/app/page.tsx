@@ -376,23 +376,18 @@ export default function Dashboard() {
         {/* Setup Status - Compact Horizontal */}
         <div className="gradient-border p-4">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-sky-500/10 flex items-center justify-center">
-                <IconSettings />
-              </div>
-              <span className="text-sm font-medium">System Status</span>
-            </div>
+            <span className="text-sm font-medium">System Status</span>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">X/Twitter API</span>
+                <span className="text-sm text-foreground">X/Twitter API</span>
                 <StatusIndicator configured={configStatus?.fetcher?.configured ?? false} />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">LLM Service</span>
+                <span className="text-sm text-foreground">LLM Service</span>
                 <StatusIndicator configured={configStatus?.scorer?.configured ?? false} />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">X402 Payment</span>
+                <span className="text-sm text-foreground">x402 Payment</span>
                 <StatusIndicator configured={configStatus?.payout?.configured ?? false} optional />
               </div>
             </div>
@@ -861,11 +856,12 @@ export default function Dashboard() {
                             ) : (
                               <button
                                 onClick={() => {
+                                  const claimLink = `${window.location.origin.replace(':7201', ':3100')}/claim/${post.tweetId}`;
                                   navigator.clipboard.writeText(
-                                    `${window.location.origin.replace(':7201', ':3100')}/claim/${post.tweetId}`
+                                    `appreciate the love fam. 🫡 couldn't have built this without you guys grinding through the early versions with us.\n\ngot something for you: ${claimLink}`
                                   );
-                                  setCopiedPost({ tweetId: post.tweetId, countdown: 3 });
-                                  let count = 3;
+                                  setCopiedPost({ tweetId: post.tweetId, countdown: 2 });
+                                  let count = 2;
                                   const interval = setInterval(() => {
                                     count--;
                                     if (count > 0) {
@@ -884,11 +880,11 @@ export default function Dashboard() {
                               >
                                 {copiedPost?.tweetId === post.tweetId ? (
                                   <>
-                                    <IconCheck /> Copied!
+                                    <IconCheck /> Claim link copied
                                   </>
                                 ) : (
                                   <>
-                                    <IconCopy /> Copy claim link
+                                    <IconCopy /> Send reward claim link to author
                                   </>
                                 )}
                               </button>
@@ -1123,8 +1119,8 @@ export default function Dashboard() {
 
       {/* Toast notification */}
       {copiedPost && (
-        <div className="fixed top-4 right-4 animate-slide-up z-50">
-          <div className="bg-emerald-500/10 backdrop-blur-lg border border-emerald-500/30 text-emerald-400 px-6 py-4 rounded-lg shadow-lg glow-success">
+        <div className="fixed right-4 top-1/2 -translate-y-1/2 animate-slide-up z-50">
+          <div className="bg-[#0d2419] border border-emerald-500/30 text-emerald-400 px-6 py-4 rounded-lg shadow-lg glow-success">
             <div className="flex items-center gap-2 font-medium">
               <IconCheck /> Claim link copied!
             </div>
