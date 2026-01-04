@@ -39,14 +39,28 @@ export class FetcherController {
   async getPosts(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
+    @Query('sortBy') sortBy: string = 'time',
   ) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
+    // Build sort object based on sortBy param
+    let sort: Record<string, 1 | -1>;
+    switch (sortBy) {
+      case 'quality':
+        sort = { qualityScore: -1 };  // highest first
+        break;
+      case 'ai':
+        sort = { aiLikelihood: 1 };   // lowest first
+        break;
+      default:
+        sort = { publishedAt: -1 };   // newest first
+    }
+
     const total = await this.mongoService.posts.countDocuments();
     const posts = await this.mongoService.posts
       .find()
-      .sort({ publishedAt: -1 })
+      .sort(sort)
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum)
       .toArray();

@@ -97,10 +97,11 @@ export default function Dashboard() {
   const [rewardConfig, setRewardConfig] = useState<RewardConfig | null>(null);
   const [editingConfig, setEditingConfig] = useState<RewardConfig | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [sortBy, setSortBy] = useState<'time' | 'quality' | 'ai'>('time');
 
-  const fetchPosts = async (page: number = 1) => {
+  const fetchPosts = async (page: number = 1, sort: string = sortBy) => {
     try {
-      const response = await apiCall<PostsResponse>(`/fetcher/posts?page=${page}&limit=20`);
+      const response = await apiCall<PostsResponse>(`/fetcher/posts?page=${page}&limit=20&sortBy=${sort}`);
       setPosts(response.data);
       setPagination({
         page: response.pagination.page,
@@ -110,6 +111,11 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Failed to fetch posts:", error);
     }
+  };
+
+  const handleSort = (newSort: 'time' | 'quality' | 'ai') => {
+    setSortBy(newSort);
+    fetchPosts(1, newSort);
   };
 
   const fetchRewardConfig = async () => {
@@ -645,13 +651,38 @@ export default function Dashboard() {
       {/* Posts List */}
       <Card className="mt-8">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Fetched Posts ({pagination.total})</CardTitle>
+          <div className="flex items-center gap-4">
+            <CardTitle>Fetched Posts ({pagination.total})</CardTitle>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant={sortBy === 'time' ? 'default' : 'outline'}
+                onClick={() => handleSort('time')}
+              >
+                Time
+              </Button>
+              <Button
+                size="sm"
+                variant={sortBy === 'quality' ? 'default' : 'outline'}
+                onClick={() => handleSort('quality')}
+              >
+                Quality
+              </Button>
+              <Button
+                size="sm"
+                variant={sortBy === 'ai' ? 'default' : 'outline'}
+                onClick={() => handleSort('ai')}
+              >
+                AI %
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
               variant="outline"
               disabled={pagination.page <= 1}
-              onClick={() => fetchPosts(pagination.page - 1)}
+              onClick={() => fetchPosts(pagination.page - 1, sortBy)}
             >
               Previous
             </Button>
@@ -662,7 +693,7 @@ export default function Dashboard() {
               size="sm"
               variant="outline"
               disabled={pagination.page >= pagination.totalPages}
-              onClick={() => fetchPosts(pagination.page + 1)}
+              onClick={() => fetchPosts(pagination.page + 1, sortBy)}
             >
               Next
             </Button>
