@@ -169,59 +169,111 @@ export default function ClaimPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-animated">
       <div className="gradient-card glow-cyan p-8 max-w-md w-full animate-fade-in">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold mb-1">Claim Your Reward</h1>
-          <p className="text-primary font-medium">@{postInfo.authorUsername}</p>
-        </div>
-
-        {/* Post Preview */}
-        <div className="info-box mb-5">
-          <p className="text-sm leading-relaxed line-clamp-3">{postInfo.text}</p>
-          {postInfo.qualityScore && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-              <span className="text-xs text-muted">Quality Score:</span>
-              <span className="text-xs font-mono-nums text-success font-medium">{postInfo.qualityScore}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Reward Amount */}
-        {postInfo.payoutAmount && (
-          <div className="reward-display mb-6">
-            <p className="text-muted text-xs uppercase tracking-wider mb-1">Your Reward</p>
-            <p className="reward-amount">{postInfo.payoutAmount} USDC</p>
-          </div>
-        )}
-
         {/* Auth & Wallet Status */}
         {authStatus === "logged-out" ? (
-          <button onClick={login} className="btn-primary">
-            <IconTwitter />
-            Sign in with X
-          </button>
+          /* ===== LOGGED OUT STATE - Optimized for conversion ===== */
+          <div className="space-y-6">
+            {/* Header with celebration */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 mb-4 animate-bounce-subtle">
+                <span className="text-2xl">🎉</span>
+              </div>
+              <h1 className="text-2xl font-bold mb-1">You&apos;ve Earned a Reward!</h1>
+              <p className="text-primary font-medium">@{postInfo.authorUsername}</p>
+            </div>
+
+            {/* HERO: Reward Amount - The star of the show */}
+            {postInfo.payoutAmount && (
+              <div className="reward-hero">
+                <p className="text-muted text-xs uppercase tracking-wider mb-2">Ready to Claim</p>
+                <p className="reward-amount-hero">{postInfo.payoutAmount} USDC</p>
+                <p className="text-emerald-400/60 text-xs mt-2">≈ ${postInfo.payoutAmount} USD</p>
+              </div>
+            )}
+
+            {/* Warm community message */}
+            <p className="text-center text-muted text-sm px-4">
+              Your post resonated with the community. <br />
+              <span className="text-foreground/80">Thanks for building with us.</span>
+            </p>
+
+            {/* Post Preview - Compact with quality badge */}
+            <div className="post-preview">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <span className="text-xs text-muted uppercase tracking-wide">Your Post</span>
+                {postInfo.qualityScore && (
+                  <span className="quality-badge">
+                    <span className="quality-badge-dot" />
+                    Score: {postInfo.qualityScore}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm leading-relaxed text-foreground/70 line-clamp-2">{postInfo.text}</p>
+            </div>
+
+            {/* CTA Button - Action-oriented */}
+            <button onClick={login} className="btn-claim">
+              <IconTwitter />
+              <span>Sign in to Claim {postInfo.payoutAmount && `${postInfo.payoutAmount} USDC`}</span>
+            </button>
+
+            {/* Trust indicator */}
+            <p className="text-center text-muted text-xs">
+              Powered by Crossmint • Instant wallet creation
+            </p>
+          </div>
         ) : walletStatus === "loading" ? (
-          <div className="text-center py-6">
-            <div className="spinner mx-auto mb-3" />
-            <p className="text-muted text-sm">Creating your wallet...</p>
+          /* ===== WALLET LOADING STATE ===== */
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="text-xl font-bold mb-1">Setting Up Your Wallet</h1>
+              <p className="text-primary font-medium">@{postInfo.authorUsername}</p>
+            </div>
+            {postInfo.payoutAmount && (
+              <div className="reward-hero">
+                <p className="text-muted text-xs uppercase tracking-wider mb-2">Your Reward</p>
+                <p className="reward-amount-hero">{postInfo.payoutAmount} USDC</p>
+              </div>
+            )}
+            <div className="text-center py-4">
+              <div className="spinner mx-auto mb-3" />
+              <p className="text-muted text-sm">Creating your wallet...</p>
+            </div>
           </div>
         ) : walletStatus === "loaded" && wallet?.address ? (
-          <div className="space-y-4">
-            {/* Wallet Info */}
-            <div className="info-box">
-              <div className="flex items-center gap-2 mb-2">
-                <IconWallet />
-                <span className="text-xs text-muted uppercase tracking-wider">Your Wallet</span>
+          /* ===== LOGGED IN STATE - Ready to claim ===== */
+          <div className="space-y-5">
+            {/* Header */}
+            <div className="text-center">
+              <h1 className="text-xl font-bold mb-1">Almost There!</h1>
+              <p className="text-primary font-medium">@{postInfo.authorUsername}</p>
+            </div>
+
+            {/* Reward Amount */}
+            {postInfo.payoutAmount && (
+              <div className="reward-hero">
+                <p className="text-muted text-xs uppercase tracking-wider mb-2">Your Reward</p>
+                <p className="reward-amount-hero">{postInfo.payoutAmount} USDC</p>
               </div>
-              <p className="font-mono-nums text-sm truncate">{wallet.address}</p>
-              {walletLinked && (
-                <p className="text-xs text-success mt-2 flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Wallet linked to your account
-                </p>
-              )}
+            )}
+
+            {/* Wallet Info - Compact */}
+            <div className="info-box">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <IconWallet />
+                  <span className="text-xs text-muted uppercase tracking-wider">Wallet</span>
+                </div>
+                {walletLinked && (
+                  <span className="text-xs text-success flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Linked
+                  </span>
+                )}
+              </div>
+              <p className="font-mono-nums text-sm truncate mt-1.5 text-foreground/70">{wallet.address}</p>
             </div>
 
             {/* Claim Button */}
@@ -248,7 +300,7 @@ export default function ClaimPage() {
                 <button
                   onClick={handleClaim}
                   disabled={claiming || !walletLinked}
-                  className="btn-success"
+                  className="btn-claim"
                 >
                   Try Again
                 </button>
@@ -257,7 +309,7 @@ export default function ClaimPage() {
               <button
                 onClick={handleClaim}
                 disabled={claiming || !walletLinked}
-                className="btn-success"
+                className="btn-claim"
               >
                 {claiming ? (
                   <>
@@ -270,7 +322,7 @@ export default function ClaimPage() {
                     Linking wallet...
                   </>
                 ) : (
-                  "Claim Reward"
+                  `Claim ${postInfo.payoutAmount || ""} USDC`
                 )}
               </button>
             )}
