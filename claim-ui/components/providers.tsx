@@ -13,7 +13,7 @@ const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "base";
 const getChain = (network: string) => {
   switch (network) {
     case "base":
-      return "base"; // Use mainnet
+      return "base"; // Production mainnet
     default:
       return "base";
   }
@@ -23,7 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <CrossmintProvider apiKey={CROSSMINT_API_KEY}>
       <CrossmintAuthProvider
-        loginMethods={["twitter", "email"]}
+        loginMethods={["twitter"]}
         authModalTitle="Sign in to Claim Reward"
         appearance={{
           borderRadius: "12px",

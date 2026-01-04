@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useAuth, useWallet } from "@crossmint/client-sdk-react-ui";
 import { getPostInfo, linkWallet, claimReward, PostInfo } from "@/lib/api";
 
 const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "base";
+
+// Check if user has Crossmint session cookies
+const hasCrossmintSession = () => {
+  if (typeof document === "undefined") return false;
+  const cookies = document.cookie;
+  return cookies.includes("crossmint-jwt") && cookies.includes("crossmint-refresh-token");
+};
 
 // Icons
 const IconCheck = () => (
@@ -48,6 +56,12 @@ export default function ClaimPage() {
     txHash?: string;
     error?: string;
   } | null>(null);
+  const [hasSession, setHasSession] = useState(false);
+
+  // Check for Crossmint session on mount
+  useEffect(() => {
+    setHasSession(hasCrossmintSession());
+  }, []);
 
   // Load post info
   useEffect(() => {
@@ -92,7 +106,17 @@ export default function ClaimPage() {
 
     try {
       const result = await claimReward(tweetId);
-      setClaimResult(result);
+      if (result.success) {
+        // Re-check cookie session status
+        setHasSession(hasCrossmintSession());
+        // Reload post info to get updated status and show "Reward Claimed" UI
+        const updatedInfo = await getPostInfo(tweetId);
+        if (updatedInfo) {
+          setPostInfo(updatedInfo);
+        }
+      } else {
+        setClaimResult(result);
+      }
     } catch (error) {
       setClaimResult({ success: false, error: "Failed to claim reward" });
     } finally {
@@ -142,25 +166,27 @@ export default function ClaimPage() {
             <div className="success-icon mb-4">
               <IconCheck />
             </div>
-            <h1 className="text-2xl font-bold text-success">Already Claimed!</h1>
+            <h1 className="text-2xl font-bold text-success">Reward Claimed!</h1>
             <p className="text-muted text-sm mt-1">This reward has been successfully claimed</p>
           </div>
 
           <div className="space-y-4">
             <div className="reward-display">
-              <p className="text-muted text-xs uppercase tracking-wider mb-1">Amount Received</p>
               <p className="reward-amount">{postInfo.payoutAmount} USDC</p>
             </div>
 
-            <a
-              href="https://www.crossmint.com/user/collection"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-success"
-            >
-              <IconWallet />
-              Manage Your Wallet
-            </a>
+            {/* Show Sign in OR Manage Wallet based on session */}
+            {hasSession ? (
+              <Link href="/wallet" className="btn-success">
+                <IconWallet />
+                Manage Your Wallet
+              </Link>
+            ) : (
+              <button onClick={login} className="btn-primary">
+                <IconTwitter />
+                Sign in with X
+              </button>
+            )}
 
             <a
               href={`https://basescan.org/tx/${postInfo.payoutTxHash}`}

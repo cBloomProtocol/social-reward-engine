@@ -63,6 +63,12 @@ export class PostsService {
       return null;
     }
 
+    // Calculate payout amount dynamically for pending posts
+    let payoutAmount = post.payoutAmount;
+    if (post.payoutStatus !== 'paid' && post.qualityScore) {
+      payoutAmount = await this.rewardConfigService.calculateRewardAmount(post.qualityScore);
+    }
+
     return {
       tweetId: post.tweetId,
       text: post.text,
@@ -73,7 +79,7 @@ export class PostsService {
       qualityScore: post.qualityScore,
       aiLikelihood: post.aiLikelihood,
       payoutStatus: post.payoutStatus,
-      payoutAmount: post.payoutAmount,
+      payoutAmount,
       payoutTxHash: post.payoutTxHash,
       publishedAt: post.publishedAt,
     };
