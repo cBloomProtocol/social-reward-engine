@@ -653,7 +653,8 @@ export default function Dashboard() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-4">
             <CardTitle>Fetched Posts ({pagination.total})</CardTitle>
-            <div className="flex gap-1">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Sort by:</span>
               <Button
                 size="sm"
                 variant={sortBy === 'time' ? 'default' : 'outline'}
@@ -700,7 +701,7 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[600px]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
