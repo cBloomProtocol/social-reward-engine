@@ -1,6 +1,6 @@
 # Social Reward Engine
 
-An automated social reward system that fetches social posts from X/Twitter, scores them using LLM, and pays users via X402 blockchain protocol on Base network.
+An automated social reward system that fetches social posts from X/Twitter, scores them using LLM, and pays users via X402 protocol on Base network.
 
 ## Features
 
@@ -118,6 +118,34 @@ cd worker && npm run dev
 | `X402_WORKER_URL` | X402 worker URL (e.g., http://localhost:8787) | Yes |
 | `X402_NETWORK` | Network: `base` or `base-sepolia` | Yes |
 | `X402_EVM_PRIVATE_KEY` | Payer wallet private key | Yes |
+
+### Reward Configuration (.env)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REWARD_BASE_AMOUNT` | Base reward amount in USDC | 1.0 |
+| `REWARD_TOKEN` | Token type | USDC |
+| `REWARD_MIN_QUALITY_SCORE` | Minimum quality score for eligibility | 80 |
+| `REWARD_MAX_AI_LIKELIHOOD` | Maximum AI likelihood for eligibility | 30 |
+
+**Eligibility Criteria:**
+- Quality Score ≥ `REWARD_MIN_QUALITY_SCORE`
+- AI Likelihood ≤ `REWARD_MAX_AI_LIKELIHOOD`
+
+**Reward Calculation:**
+The actual reward amount is dynamically calculated based on quality score:
+
+```
+amount = REWARD_BASE_AMOUNT × (0.5 + qualityMultiplier × 0.5)
+```
+
+Where `qualityMultiplier = qualityScore / 100`
+
+| Quality Score | Multiplier | Amount (base=1.0) |
+|---------------|------------|-------------------|
+| 100 | 1.0 | 1.00 USDC |
+| 90 | 0.95 | 0.95 USDC |
+| 80 | 0.90 | 0.90 USDC |
 
 ### Claim UI Environment Variables (claim-ui/.env.local)
 

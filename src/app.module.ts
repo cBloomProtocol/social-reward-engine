@@ -9,6 +9,7 @@ import { ScorerModule } from './modules/scorer/scorer.module';
 import { PayoutModule } from './modules/payout/payout.module';
 import { X402Module } from './modules/x402/x402.module';
 import { PostsModule } from './modules/posts/posts.module';
+import { RewardConfigModule } from './modules/config/config.module';
 
 @Module({
   imports: [
@@ -23,6 +24,9 @@ import { PostsModule } from './modules/posts/posts.module';
 
     // Database
     StorageModule,
+
+    // Reward config (global)
+    RewardConfigModule,
 
     // Feature modules
     FetcherModule,

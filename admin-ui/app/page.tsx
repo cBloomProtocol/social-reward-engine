@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { apiCall } from "@/lib/utils";
 
 interface Post {
@@ -73,6 +75,15 @@ interface ConfigStatus {
   payout: { configured: boolean; supportedNetworks?: string[] } | null;
 }
 
+interface RewardConfig {
+  minQualityScore: number;
+  maxAiLikelihood: number;
+  baseAmount: number;
+  token: string;
+  minMultiplier: number;
+  updatedAt: string;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
@@ -82,6 +93,10 @@ export default function Dashboard() {
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [triggering, setTriggering] = useState<Record<string, boolean>>({});
+  const [copiedPost, setCopiedPost] = useState<{ tweetId: string; countdown: number } | null>(null);
+  const [rewardConfig, setRewardConfig] = useState<RewardConfig | null>(null);
+  const [editingConfig, setEditingConfig] = useState<RewardConfig | null>(null);
+  const [savingConfig, setSavingConfig] = useState(false);
 
   const fetchPosts = async (page: number = 1) => {
     try {
@@ -94,6 +109,32 @@ export default function Dashboard() {
       });
     } catch (error) {
       console.error("Failed to fetch posts:", error);
+    }
+  };
+
+  const fetchRewardConfig = async () => {
+    try {
+      const response = await apiCall<{ data: RewardConfig }>("/config/reward");
+      setRewardConfig(response.data);
+    } catch (error) {
+      console.error("Failed to fetch reward config:", error);
+    }
+  };
+
+  const saveRewardConfig = async () => {
+    if (!editingConfig) return;
+    setSavingConfig(true);
+    try {
+      const response = await apiCall<{ data: RewardConfig }>("/config/reward", {
+        method: "PUT",
+        body: JSON.stringify(editingConfig),
+      });
+      setRewardConfig(response.data);
+      setEditingConfig(null);
+    } catch (error) {
+      console.error("Failed to save reward config:", error);
+    } finally {
+      setSavingConfig(false);
     }
   };
 
@@ -142,6 +183,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
     fetchPosts();
+    fetchRewardConfig();
     const interval = setInterval(fetchData, 30000); // Refresh every 30s
     return () => clearInterval(interval);
   }, []);
@@ -200,6 +242,127 @@ export default function Dashboard() {
               {configStatus?.payout?.configured ? "OK" : "Optional"}
             </Badge>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Reward Configuration */}
+      <Card className="mb-8">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center justify-between">
+            <span>Reward Configuration</span>
+            {!editingConfig && rewardConfig && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditingConfig({ ...rewardConfig })}
+              >
+                Edit
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rewardConfig ? (
+            editingConfig ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="minQualityScore">Min Quality Score</Label>
+                    <Input
+                      id="minQualityScore"
+                      type="number"
+                      value={editingConfig.minQualityScore}
+                      onChange={(e) =>
+                        setEditingConfig({
+                          ...editingConfig,
+                          minQualityScore: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxAiLikelihood">Max AI Likelihood (%)</Label>
+                    <Input
+                      id="maxAiLikelihood"
+                      type="number"
+                      value={editingConfig.maxAiLikelihood}
+                      onChange={(e) =>
+                        setEditingConfig({
+                          ...editingConfig,
+                          maxAiLikelihood: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="baseAmount">Base Amount</Label>
+                    <Input
+                      id="baseAmount"
+                      type="number"
+                      step="0.1"
+                      value={editingConfig.baseAmount}
+                      onChange={(e) =>
+                        setEditingConfig({
+                          ...editingConfig,
+                          baseAmount: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="minMultiplier">Min Multiplier</Label>
+                    <Input
+                      id="minMultiplier"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="1"
+                      value={editingConfig.minMultiplier}
+                      onChange={(e) =>
+                        setEditingConfig({
+                          ...editingConfig,
+                          minMultiplier: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={saveRewardConfig} disabled={savingConfig}>
+                    {savingConfig ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingConfig(null)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <div className="text-xs text-muted-foreground">Min Quality</div>
+                  <div className="text-lg font-semibold">{rewardConfig.minQualityScore}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Max AI %</div>
+                  <div className="text-lg font-semibold">{rewardConfig.maxAiLikelihood}%</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Base Amount</div>
+                  <div className="text-lg font-semibold">{rewardConfig.baseAmount} {rewardConfig.token}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Min Multiplier</div>
+                  <div className="text-lg font-semibold">{rewardConfig.minMultiplier}</div>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="text-muted-foreground">Loading...</div>
+          )}
         </CardContent>
       </Card>
 
@@ -308,17 +471,20 @@ export default function Dashboard() {
           <CardTitle>
             Eligible Posts
             <span className="ml-2 text-sm font-normal text-muted-foreground">
-              (Quality ≥ 80, AI ≤ 30%)
+              (Quality ≥ {rewardConfig?.minQualityScore ?? 80}, AI ≤ {rewardConfig?.maxAiLikelihood ?? 30}%)
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {(() => {
+            const minQuality = rewardConfig?.minQualityScore ?? 80;
+            const maxAi = rewardConfig?.maxAiLikelihood ?? 30;
+
             const eligiblePosts = posts.filter(
               (p) =>
                 p.qualityScore !== undefined &&
-                p.qualityScore >= 80 &&
-                (p.aiLikelihood === undefined || p.aiLikelihood <= 30)
+                p.qualityScore >= minQuality &&
+                (p.aiLikelihood === undefined || p.aiLikelihood <= maxAi)
             );
 
             const claimStats = {
@@ -424,10 +590,25 @@ export default function Dashboard() {
                                 navigator.clipboard.writeText(
                                   `${window.location.origin.replace(':7201', ':3100')}/claim/${post.tweetId}`
                                 );
+                                setCopiedPost({ tweetId: post.tweetId, countdown: 3 });
+                                let count = 3;
+                                const interval = setInterval(() => {
+                                  count--;
+                                  if (count > 0) {
+                                    setCopiedPost({ tweetId: post.tweetId, countdown: count });
+                                  } else {
+                                    clearInterval(interval);
+                                    window.open(
+                                      `https://x.com/${post.authorUsername}/status/${post.tweetId}`,
+                                      '_blank'
+                                    );
+                                    setCopiedPost(null);
+                                  }
+                                }, 1000);
                               }}
                               className="text-blue-600 hover:underline text-xs"
                             >
-                              Copy Link
+                              {copiedPost?.tweetId === post.tweetId ? "Copied!" : "Send claimable link to user"}
                             </button>
                           )}
                         </td>
@@ -495,7 +676,7 @@ export default function Dashboard() {
                     <td className="p-2 max-w-md truncate">{post.text}</td>
                     <td className="p-2">
                       {post.qualityScore !== undefined ? (
-                        <span className={post.qualityScore >= 80 ? "text-green-600" : "text-yellow-600"}>
+                        <span className={post.qualityScore >= (rewardConfig?.minQualityScore ?? 80) ? "text-green-600" : "text-yellow-600"}>
                           {post.qualityScore}
                         </span>
                       ) : (
@@ -504,7 +685,7 @@ export default function Dashboard() {
                     </td>
                     <td className="p-2">
                       {post.aiLikelihood !== undefined ? (
-                        <span className={post.aiLikelihood <= 30 ? "text-green-600" : "text-red-600"}>
+                        <span className={post.aiLikelihood <= (rewardConfig?.maxAiLikelihood ?? 30) ? "text-green-600" : "text-red-600"}>
                           {post.aiLikelihood}%
                         </span>
                       ) : (
@@ -626,6 +807,15 @@ export default function Dashboard() {
           )}
         </DialogFooter>
       </Dialog>
+
+      {/* Toast notification */}
+      {copiedPost && (
+        <div className="fixed top-4 right-4 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg z-50">
+          <div className="font-bold text-lg">Claim link copied!</div>
+          <div className="mt-1 text-sm opacity-90">Reply to user's post with the claim link</div>
+          <div className="mt-2">Opening X in {copiedPost.countdown}...</div>
+        </div>
+      )}
     </div>
   );
 }

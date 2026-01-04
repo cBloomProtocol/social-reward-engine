@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MongoDBService, SocialPost } from '../../storage/mongodb.service';
 import { X402ClientService } from '../payout/x402-client.service';
 import { X402Service } from '../x402/x402.service';
+import { RewardConfigService } from '../config/reward-config.service';
 
 export interface PostInfo {
   tweetId: string;
@@ -33,6 +34,7 @@ export class PostsService {
     private readonly mongoService: MongoDBService,
     private readonly x402Client: X402ClientService,
     private readonly x402Service: X402Service,
+    private readonly rewardConfigService: RewardConfigService,
   ) {}
 
   /**
@@ -102,11 +104,13 @@ export class PostsService {
       return { success: false, error: 'Post not yet scored' };
     }
 
-    if (!post.qualityScore || post.qualityScore < 80) {
+    const config = await this.rewardConfigService.getConfig();
+
+    if (!post.qualityScore || post.qualityScore < config.minQualityScore) {
       return { success: false, error: 'Post does not meet quality threshold' };
     }
 
-    if (post.aiLikelihood && post.aiLikelihood > 30) {
+    if (post.aiLikelihood && post.aiLikelihood > config.maxAiLikelihood) {
       return { success: false, error: 'Post flagged as AI-generated' };
     }
 
@@ -122,10 +126,8 @@ export class PostsService {
       return { success: false, error: 'Payment system not configured' };
     }
 
-    // Calculate reward amount
-    const qualityMultiplier = (post.qualityScore || 0) / 100;
-    const baseAmount = 1.0;
-    const amount = Math.round(baseAmount * (0.5 + qualityMultiplier * 0.5) * 100) / 100;
+    // Calculate reward amount using config
+    const amount = await this.rewardConfigService.calculateRewardAmount(post.qualityScore || 0);
 
     try {
       // Update status to processing
@@ -231,15 +233,17 @@ export class PostsService {
       return { eligible: false, status: 'pending_score', reason: 'Awaiting quality score' };
     }
 
-    if (!post.qualityScore || post.qualityScore < 80) {
+    const config = await this.rewardConfigService.getConfig();
+
+    if (!post.qualityScore || post.qualityScore < config.minQualityScore) {
       return {
         eligible: false,
         status: 'ineligible',
-        reason: `Quality score ${post.qualityScore || 0} below threshold`,
+        reason: `Quality score ${post.qualityScore || 0} below threshold (${config.minQualityScore})`,
       };
     }
 
-    if (post.aiLikelihood && post.aiLikelihood > 30) {
+    if (post.aiLikelihood && post.aiLikelihood > config.maxAiLikelihood) {
       return {
         eligible: false,
         status: 'ineligible',
@@ -247,10 +251,8 @@ export class PostsService {
       };
     }
 
-    // Calculate potential reward
-    const qualityMultiplier = (post.qualityScore || 0) / 100;
-    const baseAmount = 1.0;
-    const amount = Math.round(baseAmount * (0.5 + qualityMultiplier * 0.5) * 100) / 100;
+    // Calculate potential reward using config
+    const amount = await this.rewardConfigService.calculateRewardAmount(post.qualityScore || 0);
 
     return {
       eligible: true,

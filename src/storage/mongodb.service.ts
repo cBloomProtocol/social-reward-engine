@@ -44,6 +44,17 @@ export interface PayoutRecord {
   updatedAt: Date;
 }
 
+export interface RewardConfig {
+  _id?: ObjectId;
+  key: string; // 'reward' - singleton config
+  minQualityScore: number;
+  maxAiLikelihood: number;
+  baseAmount: number;
+  token: string;
+  minMultiplier: number;
+  updatedAt: Date;
+}
+
 @Injectable()
 export class MongoDBService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MongoDBService.name);
@@ -53,6 +64,7 @@ export class MongoDBService implements OnModuleInit, OnModuleDestroy {
   // Collections
   private _posts: Collection<SocialPost>;
   private _payouts: Collection<PayoutRecord>;
+  private _config: Collection<RewardConfig>;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -70,6 +82,7 @@ export class MongoDBService implements OnModuleInit, OnModuleDestroy {
       // Initialize collections
       this._posts = this.db.collection<SocialPost>('posts');
       this._payouts = this.db.collection<PayoutRecord>('payouts');
+      this._config = this.db.collection<RewardConfig>('config');
 
       // Create indexes
       await this.createIndexes();
@@ -101,6 +114,9 @@ export class MongoDBService implements OnModuleInit, OnModuleDestroy {
     await this._payouts.createIndex({ status: 1 });
     await this._payouts.createIndex({ createdAt: -1 });
 
+    // Config indexes
+    await this._config.createIndex({ key: 1 }, { unique: true });
+
     this.logger.log('MongoDB indexes created');
   }
 
@@ -110,6 +126,10 @@ export class MongoDBService implements OnModuleInit, OnModuleDestroy {
 
   get payouts(): Collection<PayoutRecord> {
     return this._payouts;
+  }
+
+  get config(): Collection<RewardConfig> {
+    return this._config;
   }
 
   get database(): Db {

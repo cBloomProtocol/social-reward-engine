@@ -5,6 +5,7 @@ import { ObjectId } from 'mongodb';
 import { MongoDBService, PayoutRecord } from '../../storage/mongodb.service';
 import { X402ClientService, PaymentResponse } from './x402-client.service';
 import { X402Service } from '../x402/x402.service';
+import { RewardConfigService } from '../config/reward-config.service';
 
 export interface PayoutState {
   _id?: string;
@@ -29,29 +30,18 @@ export class PayoutService implements OnModuleInit {
   private readonly logger = new Logger(PayoutService.name);
   private readonly isDev: boolean;
   private readonly batchSize: number;
-
-  // Reward configuration
-  private readonly baseAmount: number;
-  private readonly token: string;
   private readonly network: string;
-  private readonly minQualityScore: number;
-  private readonly maxAiLikelihood: number;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly mongoService: MongoDBService,
     private readonly x402Client: X402ClientService,
     private readonly x402Service: X402Service,
+    private readonly rewardConfigService: RewardConfigService,
   ) {
     this.isDev = this.configService.get<string>('NODE_ENV') === 'development';
     this.batchSize = this.configService.get<number>('PAYOUT_BATCH_SIZE') || 10;
-
-    // Reward config
-    this.baseAmount = this.configService.get<number>('REWARD_BASE_AMOUNT') || 1.0;
-    this.token = this.configService.get<string>('REWARD_TOKEN') || 'USDT';
-    this.network = this.configService.get<string>('X402_NETWORK') || 'bsc';
-    this.minQualityScore = this.configService.get<number>('REWARD_MIN_QUALITY_SCORE') || 80;
-    this.maxAiLikelihood = this.configService.get<number>('REWARD_MAX_AI_LIKELIHOOD') || 30;
+    this.network = this.configService.get<string>('X402_NETWORK') || 'base';
   }
 
   async onModuleInit() {
@@ -60,8 +50,9 @@ export class PayoutService implements OnModuleInit {
       return;
     }
 
+    const config = await this.rewardConfigService.getConfig();
     this.logger.log(
-      `Payout service initialized: ${this.baseAmount} ${this.token} on ${this.network}`,
+      `Payout service initialized: ${config.baseAmount} ${config.token} on ${this.network}`,
     );
   }
 
@@ -159,7 +150,8 @@ export class PayoutService implements OnModuleInit {
       }
 
       await this.updateStateSuccess(stateCollection, processedCount, totalPaid);
-      this.logger.log(`Payouts completed: ${processedCount} processed, ${totalPaid} ${this.token} paid`);
+      const payoutConfig = await this.rewardConfigService.getConfig();
+      this.logger.log(`Payouts completed: ${processedCount} processed, ${totalPaid} ${payoutConfig.token} paid`);
 
       return processedCount;
     } catch (error) {
@@ -184,13 +176,15 @@ export class PayoutService implements OnModuleInit {
    * Queue eligible posts for payout
    */
   private async queueEligiblePayouts(): Promise<number> {
+    const config = await this.rewardConfigService.getConfig();
+
     // Find scored posts that haven't been processed for payout
     const eligiblePosts = await this.mongoService.posts
       .find({
         scoredAt: { $exists: true },
         payoutStatus: { $exists: false },
-        qualityScore: { $gte: this.minQualityScore },
-        aiLikelihood: { $lte: this.maxAiLikelihood },
+        qualityScore: { $gte: config.minQualityScore },
+        aiLikelihood: { $lte: config.maxAiLikelihood },
         authorWallet: { $exists: true, $ne: '' },
       } as any)
       .limit(this.batchSize * 2)
@@ -199,7 +193,7 @@ export class PayoutService implements OnModuleInit {
     let queuedCount = 0;
 
     for (const post of eligiblePosts) {
-      const eligibility = this.checkEligibility(post);
+      const eligibility = await this.checkEligibility(post);
 
       if (eligibility.eligible) {
         // Create payout record - Worker will lookup wallet by authorId
@@ -207,8 +201,8 @@ export class PayoutService implements OnModuleInit {
           tweetId: post.tweetId,
           authorId: post.authorId,
           recipientAddress: post.authorWallet, // optional - Worker will lookup if not provided
-          amount: eligibility.amount || this.baseAmount,
-          token: this.token,
+          amount: eligibility.amount || config.baseAmount,
+          token: config.token,
           network: this.network,
           status: 'pending',
           createdAt: new Date(),
@@ -255,45 +249,35 @@ export class PayoutService implements OnModuleInit {
   /**
    * Check if a post is eligible for reward
    */
-  private checkEligibility(post: any): PayoutEligibility {
+  private async checkEligibility(post: any): Promise<PayoutEligibility> {
+    const config = await this.rewardConfigService.getConfig();
+
     // Check quality score
-    if (!post.qualityScore || post.qualityScore < this.minQualityScore) {
+    if (!post.qualityScore || post.qualityScore < config.minQualityScore) {
       return {
         eligible: false,
-        reason: `Quality score ${post.qualityScore || 0} below minimum ${this.minQualityScore}`,
+        reason: `Quality score ${post.qualityScore || 0} below minimum ${config.minQualityScore}`,
       };
     }
 
     // Check AI likelihood
-    if (post.aiLikelihood && post.aiLikelihood > this.maxAiLikelihood) {
+    if (post.aiLikelihood && post.aiLikelihood > config.maxAiLikelihood) {
       return {
         eligible: false,
-        reason: `AI likelihood ${post.aiLikelihood} exceeds maximum ${this.maxAiLikelihood}`,
+        reason: `AI likelihood ${post.aiLikelihood} exceeds maximum ${config.maxAiLikelihood}`,
       };
     }
 
     // Note: Wallet check happens during payout processing
     // User may not have linked wallet yet - Worker will check
 
-    // Calculate reward amount (could be dynamic based on quality)
-    const amount = this.calculateRewardAmount(post);
+    // Calculate reward amount using config service
+    const amount = await this.rewardConfigService.calculateRewardAmount(post.qualityScore || 0);
 
     return {
       eligible: true,
       amount,
     };
-  }
-
-  /**
-   * Calculate reward amount based on post quality
-   */
-  private calculateRewardAmount(post: any): number {
-    // Base amount with quality multiplier
-    const qualityMultiplier = (post.qualityScore || 0) / 100;
-    const amount = this.baseAmount * (0.5 + qualityMultiplier * 0.5);
-
-    // Round to 2 decimal places
-    return Math.round(amount * 100) / 100;
   }
 
   /**
@@ -431,6 +415,8 @@ export class PayoutService implements OnModuleInit {
    * Get payout statistics
    */
   async getStats() {
+    const config = await this.rewardConfigService.getConfig();
+
     const total = await this.mongoService.payouts.countDocuments();
     const pending = await this.mongoService.payouts.countDocuments({ status: 'pending' });
     const processing = await this.mongoService.payouts.countDocuments({ status: 'processing' });
@@ -452,7 +438,7 @@ export class PayoutService implements OnModuleInit {
       completed,
       failed,
       totalPaid: paidAgg[0]?.total || 0,
-      token: this.token,
+      token: config.token,
       network: this.network,
     };
   }
