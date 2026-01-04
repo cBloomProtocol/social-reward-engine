@@ -479,6 +479,14 @@ export default function Dashboard() {
           {(() => {
             const minQuality = rewardConfig?.minQualityScore ?? 80;
             const maxAi = rewardConfig?.maxAiLikelihood ?? 30;
+            const baseAmount = rewardConfig?.baseAmount ?? 1.0;
+            const minMultiplier = rewardConfig?.minMultiplier ?? 0.5;
+
+            // Calculate reward amount for a post
+            const calculateAmount = (qualityScore: number) => {
+              const qualityMultiplier = qualityScore / 100;
+              return Math.round(baseAmount * (minMultiplier + qualityMultiplier * (1 - minMultiplier)) * 100) / 100;
+            };
 
             const eligiblePosts = posts.filter(
               (p) =>
@@ -493,9 +501,12 @@ export default function Dashboard() {
               processing: eligiblePosts.filter((p) => p.payoutStatus === "processing").length,
               paid: eligiblePosts.filter((p) => p.payoutStatus === "paid").length,
               failed: eligiblePosts.filter((p) => p.payoutStatus === "failed").length,
-              totalAmount: eligiblePosts
+              totalPaidAmount: eligiblePosts
                 .filter((p) => p.payoutStatus === "paid" && p.payoutAmount)
                 .reduce((sum, p) => sum + (p.payoutAmount || 0), 0),
+              totalPendingAmount: eligiblePosts
+                .filter((p) => !p.payoutStatus || p.payoutStatus === "pending")
+                .reduce((sum, p) => sum + calculateAmount(p.qualityScore || 0), 0),
             };
 
             if (eligiblePosts.length === 0) {
@@ -509,7 +520,7 @@ export default function Dashboard() {
             return (
               <div>
                 {/* Claim Stats Summary */}
-                <div className="grid gap-4 md:grid-cols-5 mb-6">
+                <div className="grid gap-4 md:grid-cols-6 mb-6">
                   <div className="bg-muted/50 rounded-lg p-3">
                     <div className="text-sm text-muted-foreground">Total Eligible</div>
                     <div className="text-xl font-bold">{claimStats.total}</div>
@@ -528,7 +539,11 @@ export default function Dashboard() {
                   </div>
                   <div className="bg-muted/50 rounded-lg p-3">
                     <div className="text-sm text-muted-foreground">Total Paid</div>
-                    <div className="text-xl font-bold text-green-600">{claimStats.totalAmount.toFixed(2)} USDC</div>
+                    <div className="text-xl font-bold text-green-600">{claimStats.totalPaidAmount.toFixed(2)} USDC</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground">Pending Amount</div>
+                    <div className="text-xl font-bold text-yellow-600">{claimStats.totalPendingAmount.toFixed(2)} USDC</div>
                   </div>
                 </div>
 
@@ -557,7 +572,11 @@ export default function Dashboard() {
                           {post.aiLikelihood ?? 0}%
                         </td>
                         <td className="p-2">
-                          {post.payoutAmount ? `${post.payoutAmount} USDC` : "-"}
+                          {post.payoutAmount
+                            ? `${post.payoutAmount} USDC`
+                            : post.qualityScore
+                              ? `${calculateAmount(post.qualityScore)} USDC`
+                              : "-"}
                         </td>
                         <td className="p-2">
                           <Badge
