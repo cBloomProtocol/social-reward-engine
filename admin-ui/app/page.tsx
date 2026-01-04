@@ -98,10 +98,11 @@ export default function Dashboard() {
   const [editingConfig, setEditingConfig] = useState<RewardConfig | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
   const [sortBy, setSortBy] = useState<'time' | 'quality' | 'ai'>('time');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const fetchPosts = async (page: number = 1, sort: string = sortBy) => {
+  const fetchPosts = async (page: number = 1, sort: string = sortBy, dir: string = sortDir) => {
     try {
-      const response = await apiCall<PostsResponse>(`/fetcher/posts?page=${page}&limit=20&sortBy=${sort}`);
+      const response = await apiCall<PostsResponse>(`/fetcher/posts?page=${page}&limit=20&sortBy=${sort}&sortDir=${dir}`);
       setPosts(response.data);
       setPagination({
         page: response.pagination.page,
@@ -114,8 +115,17 @@ export default function Dashboard() {
   };
 
   const handleSort = (newSort: 'time' | 'quality' | 'ai') => {
+    let newDir: 'asc' | 'desc';
+    if (sortBy === newSort) {
+      // Toggle direction
+      newDir = sortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      // First click - set default direction per column
+      newDir = newSort === 'ai' ? 'asc' : 'desc';
+    }
     setSortBy(newSort);
-    fetchPosts(1, newSort);
+    setSortDir(newDir);
+    fetchPosts(1, newSort, newDir);
   };
 
   const fetchRewardConfig = async () => {
@@ -227,7 +237,7 @@ export default function Dashboard() {
       {/* Configuration Status */}
       <Card className="mb-8">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Configuration</CardTitle>
+          <CardTitle className="text-sm font-medium">Setup</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex items-center justify-between">
@@ -650,29 +660,8 @@ export default function Dashboard() {
 
       {/* Posts List */}
       <Card className="mt-8">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle>Fetched Posts ({pagination.total})</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pagination.page <= 1}
-              onClick={() => fetchPosts(pagination.page - 1, sortBy)}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {pagination.page} of {pagination.totalPages}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => fetchPosts(pagination.page + 1, sortBy)}
-            >
-              Next
-            </Button>
-          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto min-h-[600px]">
@@ -686,19 +675,19 @@ export default function Dashboard() {
                     className="text-left p-2 cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('quality')}
                   >
-                    Quality {sortBy === 'quality' && '↓'}
+                    Quality {sortBy === 'quality' && (sortDir === 'desc' ? '↓' : '↑')}
                   </th>
                   <th
                     className="text-left p-2 cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('ai')}
                   >
-                    AI % {sortBy === 'ai' && '↑'}
+                    AI % {sortBy === 'ai' && (sortDir === 'asc' ? '↑' : '↓')}
                   </th>
                   <th
                     className="text-left p-2 cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('time')}
                   >
-                    Date {sortBy === 'time' && '↓'}
+                    Date {sortBy === 'time' && (sortDir === 'desc' ? '↓' : '↑')}
                   </th>
                 </tr>
               </thead>
@@ -759,6 +748,28 @@ export default function Dashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+          {/* Pagination */}
+          <div className="flex justify-center items-center gap-2 mt-4">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pagination.page <= 1}
+              onClick={() => fetchPosts(pagination.page - 1, sortBy, sortDir)}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => fetchPosts(pagination.page + 1, sortBy, sortDir)}
+            >
+              Next
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -40,21 +40,23 @@ export class FetcherController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
     @Query('sortBy') sortBy: string = 'time',
+    @Query('sortDir') sortDir: string = 'desc',
   ) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
-    // Build sort object based on sortBy param
+    // Build sort object based on sortBy and sortDir params
+    const dir = sortDir === 'asc' ? 1 : -1;
     let sort: Record<string, 1 | -1>;
     switch (sortBy) {
       case 'quality':
-        sort = { qualityScore: -1 };  // highest first
+        sort = { qualityScore: dir };
         break;
       case 'ai':
-        sort = { aiLikelihood: 1 };   // lowest first
+        sort = { aiLikelihood: dir };
         break;
       default:
-        sort = { publishedAt: -1 };   // newest first
+        sort = { publishedAt: dir };
     }
 
     const total = await this.mongoService.posts.countDocuments();
