@@ -651,33 +651,7 @@ export default function Dashboard() {
       {/* Posts List */}
       <Card className="mt-8">
         <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-4">
-            <CardTitle>Fetched Posts ({pagination.total})</CardTitle>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Sort by:</span>
-              <Button
-                size="sm"
-                variant={sortBy === 'time' ? 'default' : 'outline'}
-                onClick={() => handleSort('time')}
-              >
-                Time
-              </Button>
-              <Button
-                size="sm"
-                variant={sortBy === 'quality' ? 'default' : 'outline'}
-                onClick={() => handleSort('quality')}
-              >
-                Quality
-              </Button>
-              <Button
-                size="sm"
-                variant={sortBy === 'ai' ? 'default' : 'outline'}
-                onClick={() => handleSort('ai')}
-              >
-                AI %
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Fetched Posts ({pagination.total})</CardTitle>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -707,10 +681,25 @@ export default function Dashboard() {
                 <tr className="border-b">
                   <th className="text-left p-2">Author</th>
                   <th className="text-left p-2">Text</th>
-                  <th className="text-left p-2">Quality</th>
-                  <th className="text-left p-2">AI %</th>
                   <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Date</th>
+                  <th
+                    className="text-left p-2 cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('quality')}
+                  >
+                    Quality {sortBy === 'quality' && '↓'}
+                  </th>
+                  <th
+                    className="text-left p-2 cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('ai')}
+                  >
+                    AI % {sortBy === 'ai' && '↑'}
+                  </th>
+                  <th
+                    className="text-left p-2 cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('time')}
+                  >
+                    Date {sortBy === 'time' && '↓'}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -725,6 +714,19 @@ export default function Dashboard() {
                       <div className="text-xs text-muted-foreground">{post.authorName}</div>
                     </td>
                     <td className="p-2 max-w-md truncate">{post.text}</td>
+                    <td className="p-2">
+                      <Badge
+                        variant={
+                          post.payoutStatus === "completed"
+                            ? "success"
+                            : post.payoutStatus === "pending"
+                            ? "warning"
+                            : "secondary"
+                        }
+                      >
+                        {post.payoutStatus || "unscored"}
+                      </Badge>
+                    </td>
                     <td className="p-2">
                       {post.qualityScore !== undefined ? (
                         <span className={post.qualityScore >= (rewardConfig?.minQualityScore ?? 80) ? "text-green-600" : "text-yellow-600"}>
@@ -742,19 +744,6 @@ export default function Dashboard() {
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
-                    </td>
-                    <td className="p-2">
-                      <Badge
-                        variant={
-                          post.payoutStatus === "completed"
-                            ? "success"
-                            : post.payoutStatus === "pending"
-                            ? "warning"
-                            : "secondary"
-                        }
-                      >
-                        {post.payoutStatus || "unscored"}
-                      </Badge>
                     </td>
                     <td className="p-2 text-muted-foreground">
                       {new Date(post.publishedAt).toLocaleDateString()}
