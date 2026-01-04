@@ -153,6 +153,16 @@ export default function ClaimPage() {
             </div>
 
             <a
+              href="https://www.crossmint.com/user/collection"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-success"
+            >
+              <IconWallet />
+              Manage Your Wallet
+            </a>
+
+            <a
               href={`https://basescan.org/tx/${postInfo.payoutTxHash}`}
               target="_blank"
               rel="noopener noreferrer"
