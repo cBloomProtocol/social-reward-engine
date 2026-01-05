@@ -71,7 +71,8 @@ https://github.com/user-attachments/assets/b1ef1067-9b77-4bce-8baf-6cb0feb59cab
 - [Coinbase Developer Platform](https://portal.cdp.coinbase.com) - for X402 payments
 - [Crossmint](https://www.crossmint.com/signin?callbackUrl=/console) - for embedded wallets
 
-LLM scoring is included with a public API key (see `.env.example`). Limits: 50 req/min, 1000 req/day. Need more? [Request here](https://github.com/cBloomProtocol/social-reward-engine/issues/new?template=llm-api-key-request.yml).
+LLM scoring is included with a public API key (see `.env.example`). 
+Limits: 50 req/min, 1000 req/day. Need more? [Request here](https://github.com/cBloomProtocol/social-reward-engine/issues/new?template=llm-api-key-request.yml).
 
 ### Installation
 
@@ -137,12 +138,12 @@ Reward settings are managed via Admin Dashboard at `http://localhost:7201`.
 
 1. User receives a claim link: `https://your-domain.com/claim/{tweetId}`
 2. User opens the claim page and clicks "Sign in with Twitter"
-3. Crossmint authenticates user and creates a smart wallet
+3. **Crossmint** authenticates user and creates a smart wallet
 4. Wallet address is linked to user's Twitter ID
 5. User clicks "Claim Reward"
 6. Backend creates EIP-3009 TransferWithAuthorization signature
-7. Worker settles payment via CDP
-8. USDC is transferred to user's wallet on Base
+7. Worker settles payment via **Coinbase hosted x402 facilitator**
+8. USDC is transferred to user's wallet on **Base network**
 
 ## Project Structure
 
@@ -171,20 +172,6 @@ social-reward-engine/
 └── docker-compose.yml
 ```
 
-## Deployment notice
-
-### When deploting worker on Cloudflare
-
-```bash
-cd worker
-npm run deploy
-```
-
-Configure secrets in Cloudflare dashboard:
-- `CDP_API_KEY_ID`
-- `CDP_API_KEY_SECRET`
-- `BACKEND_API_URL`
-- `NETWORK`
 
 ## License
 
