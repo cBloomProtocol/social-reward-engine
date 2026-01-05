@@ -216,21 +216,29 @@ export class CrawlerService implements OnModuleInit {
 
     // Transform tweets to posts
     const now = new Date();
-    const posts: SocialPost[] = response.data.map((tweet: XApiTweet) => {
-      const user = userMap[tweet.author_id] || { username: 'unknown', name: 'Unknown' };
+    const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-      return {
-        tweetId: tweet.id,
-        text: tweet.text,
-        authorId: tweet.author_id,
-        authorUsername: user.username,
-        authorName: user.name,
-        publishedAt: new Date(tweet.created_at),
-        crawledAt: now,
-        createdAt: now,
-        updatedAt: now,
-      };
-    });
+    const posts: SocialPost[] = response.data
+      .map((tweet: XApiTweet) => {
+        const user = userMap[tweet.author_id] || { username: 'unknown', name: 'Unknown' };
+
+        return {
+          tweetId: tweet.id,
+          text: tweet.text,
+          authorId: tweet.author_id,
+          authorUsername: user.username,
+          authorName: user.name,
+          publishedAt: new Date(tweet.created_at),
+          crawledAt: now,
+          createdAt: now,
+          updatedAt: now,
+        };
+      })
+      .filter((post) => post.publishedAt >= threeMonthsAgo);
+
+    if (posts.length < response.data.length) {
+      this.logger.debug(`Filtered out ${response.data.length - posts.length} posts older than 3 months`);
+    }
 
     // Upsert posts (avoid duplicates)
     let insertedCount = 0;
