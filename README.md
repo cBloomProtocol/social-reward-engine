@@ -7,8 +7,9 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 - **X/Twitter Fetcher**: Built-in mentions crawler using X API v2
 - **LLM Scoring**: Quality scoring with AI likelihood detection
 - **X402 Payments**: USDC payouts via CDP (Coinbase Developer Platform) on Base
-- **Claim UI**: User-facing claim page with Crossmint wallet integration
-- **Admin Dashboard**: Real-time monitoring UI built with Next.js
+- **Crossmint Integration**: X/Twitter OAuth login + smart wallet creation for seamless user onboarding
+- **Claim UI**: User-facing claim page with wallet management
+- **Admin Dashboard**: Real-time monitoring UI with reward configuration
 
 ## Architecture
 
