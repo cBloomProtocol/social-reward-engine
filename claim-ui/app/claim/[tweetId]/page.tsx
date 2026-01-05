@@ -175,8 +175,8 @@ export default function ClaimPage() {
               <p className="reward-amount">{postInfo.payoutAmount} USDC</p>
             </div>
 
-            {/* Show Sign in OR Manage Wallet based on session */}
-            {hasSession ? (
+            {/* Show Sign in OR Manage Wallet based on auth status */}
+            {authStatus === "logged-in" ? (
               <Link href="/wallet" className="btn-success">
                 <IconWallet />
                 Manage Your Wallet
