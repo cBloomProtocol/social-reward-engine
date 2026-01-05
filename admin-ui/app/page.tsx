@@ -869,9 +869,7 @@ export default function Dashboard() {
                               <button
                                 onClick={() => {
                                   const claimLink = `${window.location.origin.replace(':7201', ':3100')}/claim/${post.tweetId}`;
-                                  navigator.clipboard.writeText(
-                                    `appreciate the love fam. 🫡 couldn't have built this without you guys grinding through the early versions with us.\n\ngot something for you: ${claimLink}`
-                                  );
+                                  navigator.clipboard.writeText(claimLink);
                                   setCopiedPost({ tweetId: post.tweetId, countdown: 2 });
                                   let count = 2;
                                   const interval = setInterval(() => {
