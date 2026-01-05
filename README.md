@@ -110,13 +110,17 @@ cd worker && npm run dev
 
 | Variable | Description | Required |
 |----------|-------------|----------|
+| `PORT` | Server port (default: 7200) | No |
 | `MONGODB_URI` | MongoDB connection string | Yes |
 | `X_API_BEARER_TOKEN` | X/Twitter API bearer token | Yes |
 | `X_API_USER_ID` | X/Twitter user ID to monitor | Yes |
-| `LLM_SERVICE_URL` | External LLM service URL | No |
+| `LLM_SERVICE_URL` | External LLM service URL | Yes |
+| `LLM_API_KEY` | LLM API key | Yes |
+| `LLM_PROVIDER` | LLM provider: `anthropic`, `openai`, `deepseek`, `gemini` | No |
 | `X402_WORKER_URL` | X402 worker URL (e.g., http://localhost:8787) | Yes |
 | `X402_NETWORK` | Network: `base` or `base-sepolia` | Yes |
 | `X402_EVM_PRIVATE_KEY` | Payer wallet private key | Yes |
+| `SCORER_ITEM_DELAY` | Delay between scoring posts in ms (default: 1000) | No |
 
 ### Reward Configuration (Admin UI)
 
@@ -162,6 +166,7 @@ Create `worker/.dev.vars` manually:
 | `CDP_API_KEY_SECRET` | CDP API key secret (Ed25519) |
 | `BACKEND_API_URL` | Backend API URL |
 | `NETWORK` | Network: `base` or `base-sepolia` |
+| `API_KEY` | API key for backend authentication |
 
 ## API Endpoints
 
@@ -177,12 +182,46 @@ Create `worker/.dev.vars` manually:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/x402/user/:twitterId/wallet` | Get user's linked wallet |
+| GET | `/x402/user/:twitterId/wallet` | Get user's primary wallet |
 | POST | `/x402/user/:twitterId/wallet` | Link wallet to Twitter ID |
+| GET | `/x402/user/:twitterId/wallets` | Get all wallets for user |
 
-### Fetcher / Scorer / Payout
+### Config
 
-See existing endpoints for pipeline management.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/config/reward` | Get reward configuration |
+| PUT | `/config/reward` | Update reward configuration |
+
+### Fetcher
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/fetcher/status` | Get fetcher status |
+| POST | `/fetcher/trigger` | Manually trigger fetch |
+| GET | `/fetcher/posts` | Get fetched posts |
+| GET | `/fetcher/stats` | Get fetcher statistics |
+| GET | `/fetcher/health` | Health check |
+
+### Scorer
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/scorer/status` | Get scorer status |
+| POST | `/scorer/trigger` | Manually trigger scoring |
+| POST | `/scorer/posts/:id/score` | Score specific post |
+| GET | `/scorer/stats` | Get scorer statistics |
+| GET | `/scorer/health` | Health check |
+
+### Payout
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/payout/status` | Get payout status |
+| POST | `/payout/trigger` | Manually trigger payout |
+| GET | `/payout/stats` | Get payout statistics |
+| GET | `/payout/history` | Get payout history |
+| GET | `/payout/health` | Health check |
 
 ## Claim Flow
 
@@ -201,17 +240,21 @@ See existing endpoints for pipeline management.
 social-reward-engine/
 ├── src/
 │   ├── modules/
+│   │   ├── admin/        # Admin API endpoints
+│   │   ├── config/       # Reward configuration
 │   │   ├── fetcher/      # X API crawler
-│   │   ├── scorer/       # LLM scoring
 │   │   ├── payout/       # X402 payment client
+│   │   ├── pipeline/     # Pipeline orchestration
 │   │   ├── posts/        # Posts & claims controller
+│   │   ├── scorer/       # LLM scoring
 │   │   └── x402/         # Wallet linking service
 │   ├── storage/          # MongoDB service
 │   └── main.ts
+├── admin-ui/             # Next.js admin dashboard
 ├── claim-ui/             # Next.js user claim page
 │   ├── app/claim/        # Claim page route
+│   ├── app/wallet/       # Wallet management page
 │   └── components/       # Crossmint providers
-├── admin-ui/             # Next.js admin dashboard
 ├── worker/               # Cloudflare Worker for X402
 │   └── src/index.ts      # CDP payment settlement
 ├── templates/            # LLM prompt templates
