@@ -31,9 +31,10 @@ COPY --from=builder /app/dist ./dist
 
 # Set environment
 ENV NODE_ENV=production
+ENV PORT=7200
 
 # Expose port
-EXPOSE 3000
+EXPOSE 7200
 
 # Start the application
 CMD ["node", "dist/main"]

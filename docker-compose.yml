@@ -7,19 +7,21 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '${PORT:-3000}:3000'
+      - '${PORT:-7200}:7200'
     environment:
       - NODE_ENV=${NODE_ENV:-production}
+      - PORT=7200
       - MONGODB_URI=mongodb://mongodb:27017/social_reward_engine
       - X_API_BEARER_TOKEN=${X_API_BEARER_TOKEN}
       - X_API_USER_ID=${X_API_USER_ID}
       - LLM_SERVICE_URL=${LLM_SERVICE_URL}
       - LLM_API_KEY=${LLM_API_KEY}
-      - X402_GATEWAY_URL=${X402_GATEWAY_URL}
+      - LLM_PROVIDER=${LLM_PROVIDER:-anthropic}
+      - X402_WORKER_URL=${X402_WORKER_URL}
       - X402_NETWORK=${X402_NETWORK}
-      - X402_PRIVATE_KEY=${X402_PRIVATE_KEY}
+      - X402_EVM_PRIVATE_KEY=${X402_EVM_PRIVATE_KEY}
       - REWARD_BASE_AMOUNT=${REWARD_BASE_AMOUNT:-1.0}
-      - REWARD_TOKEN=${REWARD_TOKEN:-USDT}
+      - REWARD_TOKEN=${REWARD_TOKEN:-USDC}
       - REWARD_MIN_QUALITY_SCORE=${REWARD_MIN_QUALITY_SCORE:-80}
       - REWARD_MAX_AI_LIKELIHOOD=${REWARD_MAX_AI_LIKELIHOOD:-30}
     depends_on:
@@ -32,9 +34,9 @@ services:
       context: ./admin-ui
       dockerfile: Dockerfile
     ports:
-      - '${ADMIN_PORT:-3000}:3000'
+      - '${ADMIN_PORT:-7201}:3000'
     environment:
-      - NEXT_PUBLIC_API_URL=http://app:3000
+      - NEXT_PUBLIC_API_URL=http://app:7200
     depends_on:
       - app
     restart: unless-stopped
