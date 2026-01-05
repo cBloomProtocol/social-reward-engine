@@ -60,7 +60,7 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 
 - Node.js 20+
 - npm
-- MongoDB 7+
+- MongoDB 8+
 - X/Twitter API credentials ([X Developer Platform](https://developer.x.com/en))
 - CDP API credentials ([Coinbase Developer Platform](https://portal.cdp.coinbase.com))
 - Crossmint API key ([Crossmint Console](https://www.crossmint.com/signin?callbackUrl=/console))
@@ -93,7 +93,7 @@ cp claim-ui/.env.example claim-ui/.env.local
 
 ```bash
 # Terminal 1: Start MongoDB
-docker run -d -p 27017:27017 mongo:7
+docker run -d -p 27017:27017 mongo:8
 
 # Terminal 2: Start backend (port 7200)
 npm run start:dev
@@ -265,9 +265,9 @@ social-reward-engine/
 └── docker-compose.yml
 ```
 
-## Deployment
+## Deployment notice
 
-### Worker (Cloudflare)
+### When deploting worker on Cloudflare
 
 ```bash
 cd worker
