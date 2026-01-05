@@ -21,6 +21,7 @@ export class CrawlerService implements OnModuleInit {
   private readonly logger = new Logger(CrawlerService.name);
   private readonly userId: string;
   private readonly isDev: boolean;
+  private readonly maxAgeDays: number;
 
   constructor(
     private readonly configService: ConfigService,
@@ -29,6 +30,7 @@ export class CrawlerService implements OnModuleInit {
   ) {
     this.userId = this.configService.get<string>('X_API_USER_ID') || '';
     this.isDev = this.configService.get<string>('NODE_ENV') === 'development';
+    this.maxAgeDays = this.configService.get<number>('FETCH_MAX_AGE_DAYS') || 90;
   }
 
   async onModuleInit() {
@@ -216,7 +218,7 @@ export class CrawlerService implements OnModuleInit {
 
     // Transform tweets to posts
     const now = new Date();
-    const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const maxAgeDate = new Date(now.getTime() - this.maxAgeDays * 24 * 60 * 60 * 1000);
 
     const posts: SocialPost[] = response.data
       .map((tweet: XApiTweet) => {
@@ -234,10 +236,10 @@ export class CrawlerService implements OnModuleInit {
           updatedAt: now,
         };
       })
-      .filter((post) => post.publishedAt >= threeMonthsAgo);
+      .filter((post) => post.publishedAt >= maxAgeDate);
 
     if (posts.length < response.data.length) {
-      this.logger.debug(`Filtered out ${response.data.length - posts.length} posts older than 3 months`);
+      this.logger.debug(`Filtered out ${response.data.length - posts.length} posts older than ${this.maxAgeDays} days`);
     }
 
     // Upsert posts (avoid duplicates)
