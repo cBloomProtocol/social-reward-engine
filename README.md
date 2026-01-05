@@ -6,8 +6,6 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 https://github.com/user-attachments/assets/b1ef1067-9b77-4bce-8baf-6cb0feb59cab
 
 
-https://github.com/user-attachments/assets/9169ac33-ca36-4749-a255-c0ac3e64b792
-
 ## Features
 
 ### Core
