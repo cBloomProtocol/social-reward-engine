@@ -2,6 +2,8 @@
 
 ## User Journey
 
+video: 
+
 ```
 1. Receive Link  →  2. Connect Twitter  →  3. Claim  →  Done!
 ```
