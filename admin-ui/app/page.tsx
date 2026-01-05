@@ -571,22 +571,22 @@ export default function Dashboard() {
                         <div className="space-y-1 text-sm mb-3">
                           <div className="flex justify-between">
                             <span className="text-foreground/70">Quality</span>
-                            <span className="font-mono text-foreground">92</span>
+                            <span className="font-mono text-foreground">{rewardConfig.minQualityScore + 12}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-foreground/70">AI %</span>
-                            <span className="font-mono text-foreground">15%</span>
+                            <span className="font-mono text-foreground">{Math.floor(rewardConfig.maxAiLikelihood / 2)}%</span>
                           </div>
                         </div>
                         <div className="pt-3 border-t border-emerald-500/20 space-y-2">
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-foreground/70">Reward</span>
                             <span className="font-mono font-bold text-emerald-400">
-                              {(rewardConfig.baseAmount * (rewardConfig.minMultiplier + 0.92 * (1 - rewardConfig.minMultiplier))).toFixed(2)} {rewardConfig.token}
+                              {(rewardConfig.baseAmount * (rewardConfig.minMultiplier + (rewardConfig.minQualityScore + 12) / 100 * (1 - rewardConfig.minMultiplier))).toFixed(2)} {rewardConfig.token}
                             </span>
                           </div>
                           <div className="text-xs text-foreground/50 font-mono text-right">
-                            = {rewardConfig.baseAmount} × ({rewardConfig.minMultiplier} + 0.92 × {(1 - rewardConfig.minMultiplier).toFixed(1)})
+                            = {rewardConfig.baseAmount} × ({rewardConfig.minMultiplier} + {((rewardConfig.minQualityScore + 12) / 100).toFixed(2)} × {(1 - rewardConfig.minMultiplier).toFixed(1)})
                           </div>
                         </div>
                       </div>
@@ -606,7 +606,7 @@ export default function Dashboard() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-foreground/70">AI %</span>
-                            <span className="font-mono text-foreground">10%</span>
+                            <span className="font-mono text-foreground">{Math.floor(rewardConfig.maxAiLikelihood / 3)}%</span>
                           </div>
                         </div>
                         <div className="pt-3 border-t border-red-500/20">
@@ -625,7 +625,7 @@ export default function Dashboard() {
                         <div className="space-y-1 text-sm mb-3">
                           <div className="flex justify-between">
                             <span className="text-foreground/70">Quality</span>
-                            <span className="font-mono text-foreground">88</span>
+                            <span className="font-mono text-foreground">{rewardConfig.minQualityScore + 8}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-foreground/70">AI %</span>
