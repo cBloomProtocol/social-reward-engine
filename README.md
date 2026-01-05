@@ -9,12 +9,10 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 - **Seamless user onboarding**: Reliable service from the Crossmint - Embedded Wallet to enable X/Twitter OAuth login with wallet creation
 - **LLM Scoring**: Quality scoring with AI likelihood detection
 
-### Built-in
-- **X/Twitter Fetcher**: Built-in mentions crawler using X API v2
-
 ### Includes
 - **Claim UI**: User-facing claim page with wallet management
 - **Admin Dashboard**: Real-time monitoring UI with reward configuration
+- **X/Twitter Fetcher**: Built-in mentions crawler using X API v2
 
 ## Architecture
 
@@ -63,9 +61,9 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 - Node.js 20+
 - npm
 - MongoDB 7+
-- X/Twitter API credentials
-- CDP API credentials (from [Coinbase Developer Platform](https://portal.cdp.coinbase.com))
-- Crossmint API key (for claim UI)
+- X/Twitter API credentials ([X Developer Platform](https://developer.x.com/en))
+- CDP API credentials ([Coinbase Developer Platform](https://portal.cdp.coinbase.com))
+- Crossmint API key ([Crossmint Console](https://www.crossmint.com/signin?callbackUrl=/console))
 
 ### Installation
 
