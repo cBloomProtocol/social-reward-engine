@@ -46,9 +46,9 @@ export class CrawlerService implements OnModuleInit {
   }
 
   /**
-   * Cron job: Fetch mentions every 3 minutes
+   * Cron job: Fetch mentions every 5 minutes
    */
-  @Cron('*/3 * * * *')
+  @Cron('*/5 * * * *')
   async crawlMentions() {
     // Skip if not configured
     if (!this.xApiService.isConfigured() || !this.userId) {
