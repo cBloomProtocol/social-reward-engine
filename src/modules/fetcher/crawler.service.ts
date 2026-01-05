@@ -131,7 +131,7 @@ export class CrawlerService implements OnModuleInit {
       // Fetch mentions with pagination
       for await (const response of this.xApiService.fetchMentionsWithPagination({
         userId: this.userId,
-        maxResults: 100,
+        maxResults: 20,
         sinceId,
       })) {
         const inserted = await this.processMentionsResponse(response);
