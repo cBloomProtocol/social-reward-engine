@@ -48,6 +48,21 @@ body:
     validations:
       required: true
 
+  - type: textarea
+    id: prompt-template
+    attributes:
+      label: Custom Prompt Template (Optional)
+      description: |
+        Describe how you want posts to be scored. We'll create a prompt template for you.
+        e.g., "Focus on technical accuracy and community engagement. Penalize spam and low-effort replies."
+      placeholder: |
+        Scoring criteria:
+        - What makes a post high quality for your community?
+        - Any specific topics to prioritize?
+        - What should be penalized?
+    validations:
+      required: false
+
   - type: checkboxes
     id: terms
     attributes:
