@@ -1,0 +1,59 @@
+name: LLM API Key Request
+description: Apply for a free LLM API key for content scoring
+title: "[LLM Key Request] "
+labels: ["api-key-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for using Social Reward Engine! We provide free LLM API keys for content scoring.
+
+  - type: input
+    id: project
+    attributes:
+      label: Project Name
+      description: What's your project or community name?
+      placeholder: e.g., My Web3 Community
+    validations:
+      required: true
+
+  - type: input
+    id: twitter
+    attributes:
+      label: X/Twitter Handle
+      description: Your project's X/Twitter account (for verification)
+      placeholder: "@your_handle"
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Briefly describe how you plan to use the Social Reward Engine
+      placeholder: e.g., Reward community members for quality mentions
+    validations:
+      required: true
+
+  - type: dropdown
+    id: volume
+    attributes:
+      label: Expected Volume
+      description: Estimated posts to score per day
+      options:
+        - "< 100"
+        - "100 - 500"
+        - "500 - 1000"
+        - "> 1000"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Terms
+      options:
+        - label: I understand this is a free service with no SLA
+          required: true
+        - label: I will not abuse the API or use it for malicious purposes
+          required: true
