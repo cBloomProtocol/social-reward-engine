@@ -265,21 +265,6 @@ social-reward-engine/
 └── docker-compose.yml
 ```
 
-## Deployment
-
-### Worker (Cloudflare)
-
-```bash
-cd worker
-npm run deploy
-```
-
-Configure secrets in Cloudflare dashboard:
-- `CDP_API_KEY_ID`
-- `CDP_API_KEY_SECRET`
-- `BACKEND_API_URL`
-- `NETWORK`
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
