@@ -71,7 +71,7 @@ https://github.com/user-attachments/assets/b1ef1067-9b77-4bce-8baf-6cb0feb59cab
 - [Coinbase Developer Platform](https://portal.cdp.coinbase.com) - for X402 payments
 - [Crossmint](https://www.crossmint.com/signin?callbackUrl=/console) - for embedded wallets
 
-LLM scoring is included with a public API key (see `.env.example`). Need higher limits? [Request here](https://github.com/cBloomProtocol/social-reward-engine/issues/new?template=llm-api-key-request.yml).
+LLM scoring is included with a public API key (see `.env.example`). Limits: 50 req/min, 1000 req/day. Need more? [Request here](https://github.com/cBloomProtocol/social-reward-engine/issues/new?template=llm-api-key-request.yml).
 
 ### Installation
 
