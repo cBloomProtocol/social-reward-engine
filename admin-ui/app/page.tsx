@@ -807,6 +807,7 @@ export default function Dashboard() {
                         <th className="text-left p-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">AI %</th>
                         <th className="text-left p-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
                         <th className="text-left p-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th className="text-left p-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Claim Link</th>
                         <th className="text-left p-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
                       </tr>
                     </thead>
@@ -842,6 +843,17 @@ export default function Dashboard() {
                             }`}>
                               {post.payoutStatus || "pending"}
                             </span>
+                          </td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => {
+                                const claimLink = `${window.location.origin.replace(':7201', ':3100')}/claim/${post.tweetId}`;
+                                navigator.clipboard.writeText(claimLink);
+                              }}
+                              className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 text-xs transition-colors"
+                            >
+                              <IconCopy /> Copy claim link
+                            </button>
                           </td>
                           <td className="p-3">
                             {post.payoutStatus === "paid" && post.payoutTxHash ? (
