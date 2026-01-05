@@ -55,7 +55,7 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 ### Prerequisites
 
 - Node.js 20+
-- pnpm (for backend)
+- npm
 - MongoDB 7+
 - X/Twitter API credentials
 - CDP API credentials (from [Coinbase Developer Platform](https://portal.cdp.coinbase.com))
@@ -69,7 +69,7 @@ git clone https://github.com/cBloomProtocol/social-reward-engine.git
 cd social-reward-engine
 
 # Install backend dependencies
-pnpm install
+npm install
 
 # Install claim UI dependencies
 cd claim-ui && npm install && cd ..
@@ -83,17 +83,16 @@ cd worker && npm install && cd ..
 # Copy environment files
 cp .env.example .env
 cp claim-ui/.env.example claim-ui/.env.local
-cp worker/.dev.vars.example worker/.dev.vars
 ```
 
 ### Running Locally
 
 ```bash
 # Terminal 1: Start MongoDB
-docker run -d -p 27018:27017 mongo:7
+docker run -d -p 27017:27017 mongo:7
 
 # Terminal 2: Start backend (port 7200)
-pnpm start:dev
+npm run start:dev
 
 # Terminal 3: Start claim UI (port 3100)
 cd claim-ui && npm run dev
@@ -152,10 +151,12 @@ Where `qualityMultiplier = qualityScore / 100`
 | Variable | Description |
 |----------|-------------|
 | `NEXT_PUBLIC_API_URL` | Backend API URL |
-| `NEXT_PUBLIC_CROSSMINT_CLIENT_KEY` | Crossmint client API key |
+| `NEXT_PUBLIC_CROSSMINT_API_KEY` | Crossmint API key |
 | `NEXT_PUBLIC_NETWORK` | Network: `base` or `base-sepolia` |
 
 ### Worker Environment Variables (worker/.dev.vars)
+
+Create `worker/.dev.vars` manually:
 
 | Variable | Description |
 |----------|-------------|
