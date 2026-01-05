@@ -118,33 +118,31 @@ cd worker && npm run dev
 | `X402_NETWORK` | Network: `base` or `base-sepolia` | Yes |
 | `X402_EVM_PRIVATE_KEY` | Payer wallet private key | Yes |
 
-### Reward Configuration (.env)
+### Reward Configuration (Admin UI)
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `REWARD_BASE_AMOUNT` | Base reward amount in USDC | 1.0 |
-| `REWARD_TOKEN` | Token type | USDC |
-| `REWARD_MIN_QUALITY_SCORE` | Minimum quality score for eligibility | 80 |
-| `REWARD_MAX_AI_LIKELIHOOD` | Maximum AI likelihood for eligibility | 30 |
+Reward settings are managed through the Admin Dashboard and stored in MongoDB.
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Base Amount | Base reward amount in USDC | 1.0 |
+| Token | Token type | USDC |
+| Min Quality Score | Minimum quality score for eligibility | 80 |
+| Max AI Likelihood | Maximum AI likelihood for eligibility | 30 |
 
 **Eligibility Criteria:**
-- Quality Score ≥ `REWARD_MIN_QUALITY_SCORE`
-- AI Likelihood ≤ `REWARD_MAX_AI_LIKELIHOOD`
+- Quality Score ≥ Min Quality Score
+- AI Likelihood ≤ Max AI Likelihood
 
 **Reward Calculation:**
-The actual reward amount is dynamically calculated based on quality score:
-
 ```
-amount = REWARD_BASE_AMOUNT × (0.5 + qualityMultiplier × 0.5)
+amount = baseAmount × (0.5 + qualityScore/100 × 0.5)
 ```
 
-Where `qualityMultiplier = qualityScore / 100`
-
-| Quality Score | Multiplier | Amount (base=1.0) |
-|---------------|------------|-------------------|
-| 100 | 1.0 | 1.00 USDC |
-| 90 | 0.95 | 0.95 USDC |
-| 80 | 0.90 | 0.90 USDC |
+| Quality Score | Amount (base=1.0) |
+|---------------|-------------------|
+| 100 | 1.00 USDC |
+| 90 | 0.95 USDC |
+| 80 | 0.90 USDC |
 
 ### Claim UI Environment Variables (claim-ui/.env.local)
 
