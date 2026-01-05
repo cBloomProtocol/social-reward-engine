@@ -2,6 +2,8 @@
 
 An automated social reward system that fetches social posts from X/Twitter, scores them using LLM, and pays users via X402 protocol on Base network.
 
+https://github.com/user-attachments/assets/b1ef1067-9b77-4bce-8baf-6cb0feb59cab
+
 ## Features
 
 ### Core
@@ -65,9 +67,9 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 **API Keys**
 - [X Developer Platform](https://developer.x.com/en) - for fetching mentions
 - [Coinbase Developer Platform](https://portal.cdp.coinbase.com) - for X402 payments
-- [Crossmint Console](https://www.crossmint.com/signin?callbackUrl=/console) - for embedded wallets
+- [Crossmint](https://www.crossmint.com/signin?callbackUrl=/console) - for embedded wallets
 
-LLM scoring service is included - see `.env.example` for the public API key.
+LLM scoring is included with a public API key (see `.env.example`). Need higher limits? [Request here](https://github.com/cBloomProtocol/social-reward-engine/issues/new?template=llm-api-key-request.yml).
 
 ### Installation
 
