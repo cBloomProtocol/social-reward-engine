@@ -280,10 +280,6 @@ Configure secrets in Cloudflare dashboard:
 - `BACKEND_API_URL`
 - `NETWORK`
 
-### Backend & UIs
-
-Deploy to your preferred platform (Railway, Vercel, etc.)
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
