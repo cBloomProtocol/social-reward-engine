@@ -1,8 +1,6 @@
 # User Journeys - Social Reward Engine
 
-## End User Journey
-
-### How to Claim Your Reward
+## User Journey
 
 ```
 1. Receive Link  →  2. Connect Twitter  →  3. Claim  →  Done!
@@ -19,26 +17,26 @@ That's it! No gas fees required.
 
 ---
 
-## Ops Journey
+## Ops Manual
 
 ### How to Process Rewards
 
 ```
-1. Fetch Posts  →  2. Score Posts  →  3. Copy Link  →  4. Send to User
+1. Check Eligible Posts  →  2. Click "Send"  →  3. Reply with Link
 ```
+
+**Automatic:** Posts are fetched and scored automatically every 5 minutes.
 
 **Steps:**
 
 1. **Open Admin UI** - Go to http://localhost:7201
-2. **Click "Trigger Fetch"** - Fetches new posts from Twitter
-3. **Click "Trigger Score"** - Scores posts using LLM
-4. **Check Eligible Posts** - Look at the "Eligible Posts" card
-5. **Copy Claim Link** - Click "Copy Link" for pending posts
-6. **Send to User** - DM the link to the user
+2. **Check Eligible Posts** - View posts that meet reward criteria
+3. **Click "Send reward claim link to author"** - Copies link + opens user's X post
+4. **Reply** - Paste the claim link as a reply
 
-**Eligibility Criteria:**
-- Quality Score ≥ 80
-- AI Likelihood ≤ 30%
+**Actions in Eligible Posts:**
+- **Copy claim link** - Just copy the link
+- **Send reward claim link to author** - Copy link + auto-open X post to reply
 
 ---
 

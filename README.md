@@ -58,14 +58,16 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 
 ### Prerequisites
 
+**Runtime**
 - Node.js 20+
-- npm
 - MongoDB 8+
-- X/Twitter API credentials ([X Developer Platform](https://developer.x.com/en))
-- CDP API credentials ([Coinbase Developer Platform](https://portal.cdp.coinbase.com))
-- Crossmint API key ([Crossmint Console](https://www.crossmint.com/signin?callbackUrl=/console))
 
-You can apply the LLM service key by create an issue, we will send over to you.
+**API Keys**
+- [X Developer Platform](https://developer.x.com/en) - for fetching mentions
+- [Coinbase Developer Platform](https://portal.cdp.coinbase.com) - for X402 payments
+- [Crossmint Console](https://www.crossmint.com/signin?callbackUrl=/console) - for embedded wallets
+
+LLM scoring service is included - see `.env.example` for the public API key.
 
 ### Installation
 
@@ -112,113 +114,20 @@ cd worker && npm run dev
 
 ## Configuration
 
-### Backend (.env)
+See `.env.example` files in each directory for configuration options.
 
-```bash
-# Server
-PORT=7200
-MONGODB_URI=mongodb://localhost:27018/social_reward_engine
+| Component | Config File | Required Keys |
+|-----------|-------------|---------------|
+| Backend | `.env` | `MONGODB_URI`, `X_API_BEARER_TOKEN`, `LLM_API_KEY`, `X402_EVM_PRIVATE_KEY` |
+| Worker | `worker/.dev.vars` | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` |
+| Claim UI | `claim-ui/.env.local` | `NEXT_PUBLIC_CROSSMINT_API_KEY` |
 
-# X/Twitter API
-X_API_BEARER_TOKEN=your_bearer_token
-X_API_USER_ID=your_user_id
+Reward settings are managed via Admin Dashboard at `http://localhost:7201`.
 
-# LLM Service (apply via GitHub issue)
-LLM_SERVICE_URL=https://llm.bloomprotocol.ai
-LLM_API_KEY=your_api_key
-LLM_PROVIDER=anthropic  # anthropic | openai | deepseek | gemini
+## Documentation
 
-# X402 Payment
-X402_WORKER_URL=http://localhost:8787
-X402_NETWORK=base  # base | base-sepolia
-X402_EVM_PRIVATE_KEY=your_private_key
-
-# Optional
-FETCH_MAX_AGE_DAYS=90
-SCORER_ITEM_DELAY=1000
-```
-
-### Worker (worker/.dev.vars)
-
-```bash
-CDP_API_KEY_ID=your_cdp_key_id
-CDP_API_KEY_SECRET=your_cdp_secret
-BACKEND_API_URL=http://localhost:7200
-NETWORK=base
-```
-
-### Claim UI (claim-ui/.env.local)
-
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:7200
-NEXT_PUBLIC_CROSSMINT_API_KEY=your_crossmint_key
-NEXT_PUBLIC_NETWORK=base
-```
-
-### Reward Settings (Admin UI)
-
-Managed via Admin Dashboard at `http://localhost:7201`:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Base Amount | 1.0 USDC | Base reward per post |
-| Min Quality Score | 80 | Minimum score for eligibility |
-| Max AI Likelihood | 30 | Maximum AI % for eligibility |
-
-## API Endpoints
-
-### Posts & Claims
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/posts/:tweetId` | Get post info for claim page |
-| POST | `/claim/:tweetId` | Claim reward for a post |
-| GET | `/claim/:tweetId/status` | Get claim status |
-
-### X402 Wallet
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/x402/user/:twitterId/wallet` | Get user's primary wallet |
-| POST | `/x402/user/:twitterId/wallet` | Link wallet to Twitter ID |
-| GET | `/x402/user/:twitterId/wallets` | Get all wallets for user |
-
-### Config
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/config/reward` | Get reward configuration |
-| PUT | `/config/reward` | Update reward configuration |
-
-### Fetcher
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/fetcher/status` | Get fetcher status |
-| POST | `/fetcher/trigger` | Manually trigger fetch |
-| GET | `/fetcher/posts` | Get fetched posts |
-| GET | `/fetcher/stats` | Get fetcher statistics |
-| GET | `/fetcher/health` | Health check |
-
-### Scorer
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/scorer/status` | Get scorer status |
-| POST | `/scorer/trigger` | Manually trigger scoring |
-| POST | `/scorer/posts/:id/score` | Score specific post |
-| GET | `/scorer/stats` | Get scorer statistics |
-| GET | `/scorer/health` | Health check |
-
-### Payout
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/payout/status` | Get payout status |
-| POST | `/payout/trigger` | Manually trigger payout |
-| GET | `/payout/stats` | Get payout statistics |
-| GET | `/payout/history` | Get payout history |
-| GET | `/payout/health` | Health check |
+- [API Reference](API.md) - Full endpoint documentation
+- [User Journey](USER_JOURNEY.md) - User claim flow and ops manual
 
 ## Claim Flow
 
