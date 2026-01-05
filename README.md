@@ -65,6 +65,8 @@ An automated social reward system that fetches social posts from X/Twitter, scor
 - CDP API credentials ([Coinbase Developer Platform](https://portal.cdp.coinbase.com))
 - Crossmint API key ([Crossmint Console](https://www.crossmint.com/signin?callbackUrl=/console))
 
+You can apply the LLM service key by create an issue, we will send over to you.
+
 ### Installation
 
 ```bash
@@ -110,67 +112,58 @@ cd worker && npm run dev
 
 ## Configuration
 
-### Backend Environment Variables (.env)
+### Backend (.env)
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PORT` | Server port (default: 7200) | No |
-| `MONGODB_URI` | MongoDB connection string | Yes |
-| `X_API_BEARER_TOKEN` | X/Twitter API bearer token | Yes |
-| `X_API_USER_ID` | X/Twitter user ID to monitor | Yes |
-| `LLM_SERVICE_URL` | External LLM service URL | Yes |
-| `LLM_API_KEY` | LLM API key | Yes |
-| `LLM_PROVIDER` | LLM provider: `anthropic`, `openai`, `deepseek`, `gemini` | No |
-| `X402_WORKER_URL` | X402 worker URL (e.g., http://localhost:8787) | Yes |
-| `X402_NETWORK` | Network: `base` or `base-sepolia` | Yes |
-| `X402_EVM_PRIVATE_KEY` | Payer wallet private key | Yes |
-| `SCORER_ITEM_DELAY` | Delay between scoring posts in ms (default: 1000) | No |
+```bash
+# Server
+PORT=7200
+MONGODB_URI=mongodb://localhost:27018/social_reward_engine
 
-### Reward Configuration (Admin UI)
+# X/Twitter API
+X_API_BEARER_TOKEN=your_bearer_token
+X_API_USER_ID=your_user_id
 
-Reward settings are managed through the Admin Dashboard and stored in MongoDB.
+# LLM Service (apply via GitHub issue)
+LLM_SERVICE_URL=https://llm.bloomprotocol.ai
+LLM_API_KEY=your_api_key
+LLM_PROVIDER=anthropic  # anthropic | openai | deepseek | gemini
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Base Amount | Base reward amount in USDC | 1.0 |
-| Token | Token type | USDC |
-| Min Quality Score | Minimum quality score for eligibility | 80 |
-| Max AI Likelihood | Maximum AI likelihood for eligibility | 30 |
+# X402 Payment
+X402_WORKER_URL=http://localhost:8787
+X402_NETWORK=base  # base | base-sepolia
+X402_EVM_PRIVATE_KEY=your_private_key
 
-**Eligibility Criteria:**
-- Quality Score ≥ Min Quality Score
-- AI Likelihood ≤ Max AI Likelihood
-
-**Reward Calculation:**
-```
-amount = baseAmount × (0.5 + qualityScore/100 × 0.5)
+# Optional
+FETCH_MAX_AGE_DAYS=90
+SCORER_ITEM_DELAY=1000
 ```
 
-| Quality Score | Amount (base=1.0) |
-|---------------|-------------------|
-| 100 | 1.00 USDC |
-| 90 | 0.95 USDC |
-| 80 | 0.90 USDC |
+### Worker (worker/.dev.vars)
 
-### Claim UI Environment Variables (claim-ui/.env.local)
+```bash
+CDP_API_KEY_ID=your_cdp_key_id
+CDP_API_KEY_SECRET=your_cdp_secret
+BACKEND_API_URL=http://localhost:7200
+NETWORK=base
+```
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL |
-| `NEXT_PUBLIC_CROSSMINT_API_KEY` | Crossmint API key |
-| `NEXT_PUBLIC_NETWORK` | Network: `base` or `base-sepolia` |
+### Claim UI (claim-ui/.env.local)
 
-### Worker Environment Variables (worker/.dev.vars)
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:7200
+NEXT_PUBLIC_CROSSMINT_API_KEY=your_crossmint_key
+NEXT_PUBLIC_NETWORK=base
+```
 
-Create `worker/.dev.vars` manually:
+### Reward Settings (Admin UI)
 
-| Variable | Description |
-|----------|-------------|
-| `CDP_API_KEY_ID` | CDP API key ID |
-| `CDP_API_KEY_SECRET` | CDP API key secret (Ed25519) |
-| `BACKEND_API_URL` | Backend API URL |
-| `NETWORK` | Network: `base` or `base-sepolia` |
-| `API_KEY` | API key for backend authentication |
+Managed via Admin Dashboard at `http://localhost:7201`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Base Amount | 1.0 USDC | Base reward per post |
+| Min Quality Score | 80 | Minimum score for eligibility |
+| Max AI Likelihood | 30 | Maximum AI % for eligibility |
 
 ## API Endpoints
 
