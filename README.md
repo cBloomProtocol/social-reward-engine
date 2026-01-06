@@ -1,6 +1,6 @@
 # Social Reward Engine
 
-An automated social reward system that fetches social posts from X/Twitter, scores them using LLM, and pays users via X402 protocol on Base network.
+An automated social reward system that fetches social posts from X/Twitter, scores them using LLM, and pays users via X402 protocol.
 
 
 https://github.com/user-attachments/assets/b1ef1067-9b77-4bce-8baf-6cb0feb59cab
